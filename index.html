@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Workout Tracker Pro</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Workout">
+  <meta name="theme-color" content="#000000">
+
+  <!-- Inter / San Francisco System Font Stack & Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            iosBg: '#000000',
+            iosCard: '#1C1C1E',
+            iosSubCard: '#2C2C2E',
+            iosBlue: '#0A84FF',
+            iosGreen: '#30D158',
+            iosOrange: '#FF9F0A',
+            iosRed: '#FF453A',
+            iosGray: '#8E8E93',
+            iosBorder: '#38383A'
+          },
+          fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', '"SF Pro Text"', 'Inter', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* iOS Safe Area Inset Support & Touch Ergonomics */
+    :root {
+      --sat: env(safe-area-inset-top, 20px);
+      --sab: env(safe-area-inset-bottom, 20px);
+    }
+    body {
+      background-color: #000000;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+      overscroll-behavior-y: none;
+      -webkit-tap-highlight-color: transparent;
+      padding-top: var(--sat);
+      padding-bottom: calc(var(--sab) + 95px);
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Prevent iOS auto-zoom on input tap */
+    input, select, textarea {
+      font-size: 16px !important;
+    }
+    /* Custom Hide Scrollbar for Horizontal Tab Bar */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Flash animation for timer completion */
+    @keyframes alertFlash {
+      0%, 100% { background-color: transparent; }
+      50% { background-color: rgba(48, 209, 88, 0.45); }
+    }
+    .flash-alert {
+      animation: alertFlash 0.5s ease-in-out 4;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 selection:bg-iosBlue selection:text-white">
+
+  <!-- Visual Flash Overlay for iOS Safari -->
+  <div id="flashOverlay" class="pointer-events-none fixed inset-0 z-50 transition-colors"></div>
+
+  <!-- Header & Title -->
+  <header class="px-4 pt-3 pb-2 sticky top-0 bg-black/85 backdrop-blur-md z-30 border-b border-iosBorder/40">
+    <div class="flex items-center justify-between">
+      <div>
+        <span class="text-xs uppercase font-semibold tracking-wider text-iosGray">Programma Settimanale</span>
+        <h1 class="text-2xl font-bold tracking-tight text-white flex items-center gap-1.5">
+          Workout Pro <span class="text-xs px-2 py-0.5 rounded-full bg-iosBlue/20 text-iosBlue border border-iosBlue/30">Upper / Lower</span>
+        </h1>
+      </div>
+      <button id="resetDayBtn" class="text-xs font-medium text-iosRed bg-iosRed/10 hover:bg-iosRed/20 px-3 py-1.5 rounded-full border border-iosRed/25 transition-all active:scale-95">
+        Resetta Giorno
+      </button>
+    </div>
+
+    <!-- Day Navigation Bar -->
+    <nav class="flex space-x-2 mt-3 overflow-x-auto no-scrollbar pb-1 text-sm font-medium" id="dayTabsContainer">
+      <!-- Generated via JS -->
+    </nav>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="px-4 py-4 max-w-lg mx-auto space-y-4" id="dayContentArea">
+    <!-- Active workout content will be injected dynamically -->
+  </main>
+
+  <!-- Floating iOS Rest Timer Bar -->
+  <div class="fixed bottom-0 inset-x-0 bg-black/90 backdrop-blur-xl border-t border-iosBorder/50 z-40 px-4 pt-2.5 pb-[calc(env(safe-area-inset-bottom)+8px)]">
+    <div class="max-w-lg mx-auto flex items-center justify-between gap-3">
+      <!-- Time Display & Status -->
+      <div class="flex items-center gap-2.5 min-w-[110px]">
+        <div id="timerDial" class="w-10 h-10 rounded-full flex items-center justify-center bg-iosCard border border-iosBorder text-iosBlue font-mono font-bold text-sm shadow-inner">
+          <span id="timerDigits">00:00</span>
+        </div>
+        <div class="leading-tight">
+          <div class="text-[10px] uppercase font-semibold text-iosGray tracking-wide">Recupero</div>
+          <div id="timerStateLabel" class="text-xs font-semibold text-slate-300">Pronto</div>
+        </div>
+      </div>
+
+      <!-- Quick Preset Buttons -->
+      <div class="flex items-center gap-1.5 flex-1 justify-end">
+        <button class="preset-btn px-2.5 py-1.5 rounded-lg bg-iosCard border border-iosBorder text-xs font-semibold active:bg-iosSubCard transition" data-sec="45">45s</button>
+        <button class="preset-btn px-2.5 py-1.5 rounded-lg bg-iosCard border border-iosBorder text-xs font-semibold active:bg-iosSubCard transition" data-sec="60">60s</button>
+        <button class="preset-btn px-2.5 py-1.5 rounded-lg bg-iosCard border border-iosBorder text-xs font-semibold active:bg-iosSubCard transition" data-sec="90">90s</button>
+        <button class="preset-btn px-2.5 py-1.5 rounded-lg bg-iosCard border border-iosBorder text-xs font-semibold active:bg-iosSubCard transition" data-sec="120">120s</button>
+        <button id="toggleTimerBtn" class="ml-1 w-9 h-9 rounded-full bg-iosBlue text-white flex items-center justify-center font-bold active:scale-90 transition">
+          ▶
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Custom In-App Modal Dialog -->
+  <div id="modalBackdrop" class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-iosCard border border-iosBorder rounded-2xl w-full max-w-xs p-5 shadow-2xl text-center space-y-4">
+      <h3 class="text-lg font-bold text-white" id="modalTitle">Conferma</h3>
+      <p class="text-sm text-iosGray" id="modalMessage">Vuoi davvero azzerare i valori e i completamenti per questo giorno?</p>
+      <div class="flex gap-2">
+        <button id="modalCancelBtn" class="flex-1 py-2.5 rounded-xl bg-iosSubCard text-white text-sm font-semibold active:opacity-75">Annulla</button>
+        <button id="modalConfirmBtn" class="flex-1 py-2.5 rounded-xl bg-iosRed text-white text-sm font-semibold active:opacity-75">Resetta</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /* -------------------------------------------------------------
+       1. WORKOUT DATA DEFINITION
+    --------------------------------------------------------------*/
+    const WORKOUT_DAYS = [
+      {
+        id: 'mon',
+        label: 'Lun',
+        badge: 'Upper A',
+        title: 'Lunedì: Upper A (Spinta e Tirata Orizzontale)',
+        notes: 'Riscaldamento spalle obbligatorio: 2×15 aperture a L con bande elastiche & extra-rotazioni cuffia dei rotatori. Mantieni RIR 1-2 su tutti gli esercizi.',
+        type: 'lifting',
+        exercises: [
+          {
+            id: 'mon_ex1',
+            name: 'Panca Piana con Bilanciere',
+            target: '4 serie × 6-8 rip',
+            rest: '120s',
+            tips: 'Carichi conservativi (40-50 kg), adduzione scapolare costante, fermo al petto solido.',
+            defaultSets: 4,
+            defaultKg: '40',
+            defaultReps: '8'
+          },
+          {
+            id: 'mon_ex2',
+            name: 'Trazioni alla Sbarra (Prona o Neutra)',
+            target: '4 serie × max tecnico (target 4-8 rip)',
+            rest: '120s',
+            tips: 'Presa prona o neutra. Se superi 8 colpi a corpo libero pulite, aggiungi zavorra.',
+            defaultSets: 4,
+            defaultKg: '0',
+            defaultReps: '5'
+          },
+          {
+            id: 'mon_ex3',
+            name: 'Dip alle Parallele',
+            target: '3 serie × 8-10 rip (+5/10 kg) o 12-15 bw',
+            rest: '90s',
+            tips: 'Discesa controllata a 90°, gomiti aderenti senza forzare eccessivamente le spalle.',
+            defaultSets: 3,
+            defaultKg: '0',
+            defaultReps: '8'
+          },
+          {
+            id: 'mon_ex4',
+            name: 'Rematore con Bilanciere (Barbell Row)',
+            target: '3 serie × 8-10 rip',
+            rest: '90s',
+            tips: 'Busto inclinato a 45-60°, tirata verso l\'ombelico stringendo i dorsali.',
+            defaultSets: 3,
+            defaultKg: '30',
+            defaultReps: '10'
+          },
+          {
+            id: 'mon_ex5',
+            name: 'Face Pull con Elastico',
+            target: '3 serie × 15-20 rip',
+            rest: '60s',
+            tips: 'Fissato all\'altezza occhi: tira verso la fronte aprendo i gomiti.',
+            defaultSets: 3,
+            defaultKg: '10',
+            defaultReps: '15'
+          }
+        ]
+      },
+      {
+        id: 'tue',
+        label: 'Mar',
+        badge: 'Lower A',
+        title: 'Martedì: Lower A (Quadricipiti e Spinta Gambe)',
+        notes: 'Focus biomeccanica leve lunghe. Mantieni sempre la colonna lombare neutra in ogni affondo e squat.',
+        type: 'lifting',
+        exercises: [
+          {
+            id: 'tue_ex1',
+            name: 'Back Squat con Bilanciere',
+            target: '4 serie × 6-8 rip',
+            rest: '120s-150s',
+            tips: 'Scendi al parallelo con addome pressurizzato; evita flessioni lombari in buca.',
+            defaultSets: 4,
+            defaultKg: '50',
+            defaultReps: '8'
+          },
+          {
+            id: 'tue_ex2',
+            name: 'Kettlebell Romanian Deadlift (RDL)',
+            target: '3 serie × 10-12 rip (KB 20kg o doppio)',
+            rest: '90s',
+            tips: 'Gambe semi-tese, spingi indietro i glutei fino a sentire massima estensione femorale.',
+            defaultSets: 3,
+            defaultKg: '20',
+            defaultReps: '12'
+          },
+          {
+            id: 'tue_ex3',
+            name: 'Affondi in Camminata o Bulgari',
+            target: '3 serie × 10 rip per gamba',
+            rest: '90s',
+            tips: 'A corpo libero o con KB da 16 kg al petto. Passo lungo per tutelare il ginocchio.',
+            defaultSets: 3,
+            defaultKg: '16',
+            defaultReps: '10'
+          },
+          {
+            id: 'tue_ex4',
+            name: 'Hanging Leg Raises o Plank',
+            target: '3 serie × 10-12 rip (o Plank 45s)',
+            rest: '60s',
+            tips: 'Retroflessione del bacino senza slancio alla sbarra o plank rigido come asse.',
+            defaultSets: 3,
+            defaultKg: '0',
+            defaultReps: '12'
+          }
+        ]
+      },
+      {
+        id: 'wed',
+        label: 'Mer',
+        badge: 'Cardio',
+        title: 'Mercoledì: Corsa Aerobica (Zona 2)',
+        notes: 'Obiettivo: Costruire base cardiovascolare e velocizzare il recupero muscolare senza affaticare le gambe per giovedì.',
+        type: 'cardio',
+        cardioPlan: {
+          duration: '35 - 45 minuti',
+          intensity: 'Ritmo costante Zona 2 (nasale/conversazione)',
+          details: 'Dovresti essere sempre in grado di pronunciare frasi intere senza affanno. Non accelerare, mantieni cadenza agile.'
+        }
+      },
+      {
+        id: 'thu',
+        label: 'Gio',
+        badge: 'Upper B',
+        title: 'Giovedì: Upper B (Verticale & Spalle a V)',
+        notes: 'Priorità deltoidi laterali e spinta verso l\'alto per ampliare la sagoma del busto.',
+        type: 'lifting',
+        exercises: [
+          {
+            id: 'thu_ex1',
+            name: 'Military Press con Bilanciere',
+            target: '4 serie × 6-8 rip',
+            rest: '120s',
+            tips: 'In piedi dal rack: glutei e addome serrati per proteggere la zona lombare.',
+            defaultSets: 4,
+            defaultKg: '20',
+            defaultReps: '8'
+          },
+          {
+            id: 'thu_ex2',
+            name: 'Chin-Up (Presa Inversa Supina)',
+            target: '4 serie × max tecnico',
+            rest: '90s-120s',
+            tips: 'Coinvolgimento marcato di gran dorsale e flessori del braccio. Discesa completa.',
+            defaultSets: 4,
+            defaultKg: '0',
+            defaultReps: '5'
+          },
+          {
+            id: 'thu_ex3',
+            name: 'Panca Piana Presa Medio/Stretta',
+            target: '3 serie × 8-10 rip',
+            rest: '90s',
+            tips: 'Gomiti a 45° rispetto al busto: ottimo focus per tricipiti e parte sternale petto.',
+            defaultSets: 3,
+            defaultKg: '30',
+            defaultReps: '10'
+          },
+          {
+            id: 'thu_ex4',
+            name: 'Rematore 1 Braccio con KB (20 kg)',
+            target: '3 serie × 10-12 rip per lato',
+            rest: '60s-90s',
+            tips: 'Appoggio su panca o ginocchio. Tira il gomito verso l\'anca senza ruotare il torace.',
+            defaultSets: 3,
+            defaultKg: '20',
+            defaultReps: '12'
+          },
+          {
+            id: 'thu_ex5',
+            name: 'Alzate Laterali con Elastico',
+            target: '3 serie × 15-20 rip',
+            rest: '45s',
+            tips: 'Tensione continua al vertice, discesa controllata senza oscillazioni con il tronco.',
+            defaultSets: 3,
+            defaultKg: '5',
+            defaultReps: '15'
+          }
+        ]
+      },
+      {
+        id: 'fri',
+        label: 'Ven',
+        badge: 'Lower B',
+        title: 'Venerdì: Lower B & Potenza Posteriore',
+        notes: 'Fondamentale per rapidità e stabilità nei cambi di direzione a tennis e padel.',
+        type: 'lifting',
+        exercises: [
+          {
+            id: 'fri_ex1',
+            name: 'Kettlebell Swing (KB 20 kg)',
+            target: '4 serie × 15-20 rip esplosive',
+            rest: '90s',
+            tips: 'Hip-hinge scattante; la forza proviene dal bacino e dai glutei, non dalle braccia.',
+            defaultSets: 4,
+            defaultKg: '20',
+            defaultReps: '20'
+          },
+          {
+            id: 'fri_ex2',
+            name: 'Stacco da Terra Rumeno con Bilanciere',
+            target: '3 serie × 8-10 rip',
+            rest: '120s',
+            tips: 'Bilanciere attaccato alle tibie, scapole depresse e catena cinetica posteriore carica.',
+            defaultSets: 3,
+            defaultKg: '40',
+            defaultReps: '10'
+          },
+          {
+            id: 'fri_ex3',
+            name: 'Goblet Squat Profondo (KB 20 kg)',
+            target: '3 serie × 12 rip',
+            rest: '90s',
+            tips: 'Gomiti all\'interno delle ginocchia, petto alto per mobilità coxo-femorale.',
+            defaultSets: 3,
+            defaultKg: '20',
+            defaultReps: '12'
+          },
+          {
+            id: 'fri_ex4',
+            name: 'Calf Raise su Gradino (Singola Gamba)',
+            target: '3 serie × 15-20 rip per gamba',
+            rest: '45s',
+            tips: 'Pausa di 1 secondo al massimo allungamento in basso prima di spingere.',
+            defaultSets: 3,
+            defaultKg: '0',
+            defaultReps: '20'
+          },
+          {
+            id: 'fri_ex5',
+            name: 'Russian Twist (KB 16 kg) o Hollow Hold',
+            target: '3 serie × 20 rotazioni totali (o 40s hollow)',
+            rest: '60s',
+            tips: 'Rotazione controllata da lato a lato senza rimbalzi.',
+            defaultSets: 3,
+            defaultKg: '16',
+            defaultReps: '20'
+          }
+        ]
+      },
+      {
+        id: 'sat',
+        label: 'Sab',
+        badge: 'Agilità',
+        title: 'Sabato: Condizionamento Atletico / Agilità',
+        notes: 'Se giochi già una partita di tennis o padel, considerala come sessione completa!',
+        type: 'conditioning',
+        protocol: {
+          summary: 'HIIT a Navetta (Shuttle Runs) - Totale ~15 minuti',
+          steps: [
+            '6-8 serie da 20 secondi a massima velocità su 10-15 metri con cambi di senso.',
+            '40 secondi di camminata o riposo attivo tra ogni serie.',
+            'Alternativa sul campo: 1 ora e mezza di Tennis / Padel ad alta intensità.'
+          ]
+        }
+      },
+      {
+        id: 'sun',
+        label: 'Dom',
+        badge: 'Riposo',
+        title: 'Domenica: Rigenerazione Totale',
+        notes: 'Recupero attivo o totale riposo. Favorisci 8 ore di sonno, idratazione abbondante e corretta quota proteica per iniziare al massimo la nuova settimana.',
+        type: 'rest'
+      },
+      {
+        id: 'history',
+        label: 'Storico',
+        badge: 'Statistiche',
+        title: 'Attività & Storico',
+        notes: 'Monitora i tuoi progressi nel tempo e gestisci i dati di backup.',
+        type: 'history'
+      }
+    ];
+
+    /* -------------------------------------------------------------
+       2. LOCALSTORAGE STATE MANAGEMENT
+    --------------------------------------------------------------*/
+    const STORAGE_KEY = 'ios_workout_tracker_state_v1';
+    let appState = {
+      activeDayId: 'mon',
+      completedSets: {}, // key: "exId_setIdx" => bool
+      inputs: {},        // key: "exId_setIdx_kg" or "exId_setIdx_reps" => string
+      history: []        // Storico allenamenti completati
+    };
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          appState = Object.assign(appState, JSON.parse(raw));
+        }
+      } catch (e) {
+        console.warn('Storage parsing error', e);
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(appState));
+      } catch (e) {
+        console.error('Cannot save state', e);
+      }
+    }
+
+    /* -------------------------------------------------------------
+       3. WEB AUDIO API SYNTHESIZER (iOS Safari Safe)
+    --------------------------------------------------------------*/
+    let audioCtx = null;
+
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Play double high-pitch tone
+    function playRestEndBeep() {
+      try {
+        initAudioContext();
+        if (!audioCtx) return;
+
+        const now = audioCtx.currentTime;
+        const osc1 = audioCtx.createOscillator();
+        const gain1 = audioCtx.createGain();
+
+        osc1.type = 'sine';
+        osc1.frequency.setValueAtTime(880, now); // A5
+        osc1.frequency.setValueAtTime(1174.66, now + 0.15); // D6
+
+        gain1.gain.setValueAtTime(0.2, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+
+        osc1.connect(gain1);
+        gain1.connect(audioCtx.destination);
+
+        osc1.start(now);
+        osc1.stop(now + 0.6);
+      } catch (err) {
+        console.log('Audio playback error', err);
+      }
+    }
+
+    /* -------------------------------------------------------------
+       4. REST TIMER LOGIC
+    --------------------------------------------------------------*/
+    let timerDuration = 90;
+    let timerRemaining = 90;
+    let timerRunning = false;
+    let timerInterval = null;
+
+    const timerDigits = document.getElementById('timerDigits');
+    const timerStateLabel = document.getElementById('timerStateLabel');
+    const toggleTimerBtn = document.getElementById('toggleTimerBtn');
+    const timerDial = document.getElementById('timerDial');
+    const flashOverlay = document.getElementById('flashOverlay');
+
+    function formatTime(sec) {
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function updateTimerDisplay() {
+      timerDigits.textContent = formatTime(timerRemaining);
+      if (timerRunning) {
+        timerDial.classList.add('border-iosGreen', 'text-iosGreen');
+        timerDial.classList.remove('border-iosBorder', 'text-iosBlue');
+      } else {
+        timerDial.classList.remove('border-iosGreen', 'text-iosGreen');
+        timerDial.classList.add('border-iosBorder', 'text-iosBlue');
+      }
+    }
+
+    function startTimer(duration) {
+      initAudioContext();
+      if (duration !== undefined) {
+        timerDuration = duration;
+        timerRemaining = duration;
+      }
+      clearInterval(timerInterval);
+      timerRunning = true;
+      timerStateLabel.textContent = 'In corso...';
+      toggleTimerBtn.textContent = '❚❚';
+      toggleTimerBtn.classList.replace('bg-iosBlue', 'bg-iosOrange');
+
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        timerRemaining--;
+        if (timerRemaining <= 0) {
+          clearInterval(timerInterval);
+          timerRunning = false;
+          timerRemaining = timerDuration;
+          timerStateLabel.textContent = 'Completato!';
+          toggleTimerBtn.textContent = '▶';
+          toggleTimerBtn.classList.replace('bg-iosOrange', 'bg-iosBlue');
+          updateTimerDisplay();
+          onTimerComplete();
+        } else {
+          updateTimerDisplay();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerStateLabel.textContent = 'In pausa';
+      toggleTimerBtn.textContent = '▶';
+      toggleTimerBtn.classList.replace('bg-iosOrange', 'bg-iosBlue');
+      updateTimerDisplay();
+    }
+
+    function onTimerComplete() {
+      playRestEndBeep();
+      // Flash screen for visual feedback on iOS
+      flashOverlay.classList.add('flash-alert');
+      setTimeout(() => {
+        flashOverlay.classList.remove('flash-alert');
+      }, 2100);
+    }
+
+    toggleTimerBtn.addEventListener('click', () => {
+      initAudioContext();
+      if (timerRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    });
+
+    document.querySelectorAll('.preset-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const seconds = parseInt(btn.getAttribute('data-sec'), 10);
+        startTimer(seconds);
+      });
+    });
+
+    /* -------------------------------------------------------------
+       4.5 HISTORY & STATS HELPERS
+    --------------------------------------------------------------*/
+    function getLastSetData(dayId, exId, setNum) {
+      if (!appState.history || !appState.history.length) return null;
+      for (let i = appState.history.length - 1; i >= 0; i--) {
+        const session = appState.history[i];
+        if (session.dayId === dayId && session.exercises && session.exercises[exId] && session.exercises[exId][setNum]) {
+          return session.exercises[exId][setNum];
+        }
+      }
+      return null;
+    }
+
+    function saveCompletedWorkout(dayId) {
+      const currentDay = WORKOUT_DAYS.find(d => d.id === dayId);
+      if (!currentDay) return;
+
+      const sessionRecord = {
+        id: 'sess_' + Date.now(),
+        date: new Date().toISOString(),
+        dayId: dayId,
+        title: currentDay.title,
+        exercises: {}
+      };
+
+      if (currentDay.type === 'lifting') {
+        currentDay.exercises.forEach(ex => {
+          sessionRecord.exercises[ex.id] = {};
+          for (let s = 1; s <= ex.defaultSets; s++) {
+            const checkKey = `${ex.id}_s${s}`;
+            const kgKey = `${ex.id}_s${s}_kg`;
+            const repsKey = `${ex.id}_s${s}_reps`;
+            
+            if (appState.completedSets[checkKey]) {
+              sessionRecord.exercises[ex.id][s] = {
+                kg: appState.inputs[kgKey] || '',
+                reps: appState.inputs[repsKey] || ''
+              };
+              // Svuotiamo le spunte per la prossima settimana e puliamo lo stato locale degli input, 
+              // forzando così l'app a pre-compilarli automaticamente prendendoli dallo storico la volta successiva.
+              delete appState.completedSets[checkKey];
+              delete appState.inputs[kgKey];
+              delete appState.inputs[repsKey];
+            }
+          }
+        });
+      } else {
+        // Le sessioni Cardio o Agilità vengono salvate come semplicemente "completate"
+        sessionRecord.completed = true;
+      }
+
+      appState.history = appState.history || [];
+      appState.history.push(sessionRecord);
+      saveState();
+      
+      // Feedback Visivo Finale
+      flashOverlay.classList.add('flash-alert');
+      setTimeout(() => flashOverlay.classList.remove('flash-alert'), 2100);
+      
+      renderActiveDay();
+    }
+
+    function exportHistory() {
+      const dataStr = JSON.stringify(appState, null, 2);
+      const blob = new Blob([dataStr], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `workout_backup_${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function importHistory(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const importedState = JSON.parse(e.target.result);
+          if (importedState && importedState.activeDayId) {
+            appState = Object.assign(appState, importedState);
+            saveState();
+            renderTabs();
+            renderActiveDay();
+            alert("Backup importato con successo!");
+          }
+        } catch (err) {
+          alert("Errore nell'importazione. File non valido.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    function toggleHistoryDetail(sessId) {
+      const el = document.getElementById('details_' + sessId);
+      if (el) el.classList.toggle('hidden');
+    }
+
+    /* -------------------------------------------------------------
+       5. RENDER FUNCTIONS
+    --------------------------------------------------------------*/
+    const tabsContainer = document.getElementById('dayTabsContainer');
+    const dayContentArea = document.getElementById('dayContentArea');
+
+    function renderTabs() {
+      tabsContainer.innerHTML = '';
+      WORKOUT_DAYS.forEach(day => {
+        const isActive = day.id === appState.activeDayId;
+        const btn = document.createElement('button');
+        btn.className = `flex-shrink-0 px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all text-xs font-semibold ${
+          isActive 
+            ? 'bg-iosBlue text-white shadow-md shadow-iosBlue/30' 
+            : 'bg-iosCard text-iosGray border border-iosBorder/70 active:bg-iosSubCard'
+        }`;
+        btn.innerHTML = `<span>${day.label}</span> <span class="text-[10px] opacity-80 font-normal">(${day.badge})</span>`;
+        btn.addEventListener('click', () => {
+          appState.activeDayId = day.id;
+          saveState();
+          renderTabs();
+          renderActiveDay();
+        });
+        tabsContainer.appendChild(btn);
+      });
+    }
+
+    function renderActiveDay() {
+      const currentDay = WORKOUT_DAYS.find(d => d.id === appState.activeDayId) || WORKOUT_DAYS[0];
+      dayContentArea.innerHTML = '';
+
+      // Header Card for Day Info
+      const banner = document.createElement('div');
+      banner.className = 'bg-iosCard border border-iosBorder/80 rounded-2xl p-4 shadow-sm';
+      banner.innerHTML = `
+        <div class="flex items-center justify-between mb-1">
+          <h2 class="text-lg font-bold text-white">${currentDay.title}</h2>
+        </div>
+        <p class="text-xs text-iosGray leading-relaxed">${currentDay.notes}</p>
+      `;
+      dayContentArea.appendChild(banner);
+
+      // Rendering based on Day Type
+      if (currentDay.type === 'lifting') {
+        currentDay.exercises.forEach((ex, exIndex) => {
+          const exCard = document.createElement('div');
+          exCard.className = 'bg-iosCard border border-iosBorder/70 rounded-2xl p-4 shadow-sm space-y-3';
+
+          // Exercise Header
+          let setsHtml = '';
+          let needsStateSave = false;
+          
+          for (let s = 1; s <= ex.defaultSets; s++) {
+            const checkKey = `${ex.id}_s${s}`;
+            const kgKey = `${ex.id}_s${s}_kg`;
+            const repsKey = `${ex.id}_s${s}_reps`;
+
+            const isChecked = !!appState.completedSets[checkKey];
+            
+            // --- LOGICA PRE-POPOLAMENTO AUTOMATICO ---
+            let valKg = appState.inputs[kgKey];
+            let valReps = appState.inputs[repsKey];
+
+            if (valKg === undefined || valReps === undefined) {
+              const lastVal = getLastSetData(currentDay.id, ex.id, s);
+              
+              if (valKg === undefined) {
+                valKg = lastVal ? lastVal.kg : (ex.defaultKg !== undefined ? ex.defaultKg : '');
+                appState.inputs[kgKey] = valKg;
+                needsStateSave = true;
+              }
+              if (valReps === undefined) {
+                valReps = lastVal ? lastVal.reps : (ex.defaultReps !== undefined ? ex.defaultReps : '');
+                appState.inputs[repsKey] = valReps;
+                needsStateSave = true;
+              }
+            }
+            // -----------------------------------------
+
+            // Cerca il valore della settimana scorsa
+            const lastVal = getLastSetData(currentDay.id, ex.id, s);
+            const lastLabel = lastVal ? `Storico: ${lastVal.kg || '-'}kg × ${lastVal.reps || '-'}` : 'Setup base';
+
+            setsHtml += `
+              <div class="flex items-center justify-between gap-2 py-1.5 border-t border-iosBorder/30 set-row ${isChecked ? 'opacity-60 bg-white/[0.02]' : ''}">
+                <div class="w-7 flex flex-col items-center">
+                  <span class="text-xs font-bold text-iosGray">#${s}</span>
+                </div>
+                <div class="flex-1 flex flex-col gap-1">
+                  <div class="flex items-center gap-2">
+                    <div class="relative flex-1">
+                      <input 
+                        type="text" 
+                        inputmode="decimal" 
+                        placeholder="kg" 
+                        value="${valKg}"
+                        data-key="${kgKey}"
+                        class="weight-input w-full bg-iosSubCard/80 border border-iosBorder/80 rounded-lg px-2.5 py-1 text-center font-medium text-white placeholder-iosGray/40 focus:border-iosBlue focus:outline-none"
+                      />
+                    </div>
+                    <div class="relative flex-1">
+                      <input 
+                        type="text" 
+                        inputmode="numeric" 
+                        placeholder="reps" 
+                        value="${valReps}"
+                        data-key="${repsKey}"
+                        class="reps-input w-full bg-iosSubCard/80 border border-iosBorder/80 rounded-lg px-2.5 py-1 text-center font-medium text-white placeholder-iosGray/40 focus:border-iosBlue focus:outline-none"
+                      />
+                    </div>
+                  </div>
+                  ${lastLabel ? `<div class="text-[10px] text-iosBlue/80 font-medium px-1">${lastLabel}</div>` : ''}
+                </div>
+                <button 
+                  type="button"
+                  data-checkkey="${checkKey}"
+                  data-rest="${ex.rest}"
+                  class="set-check-btn w-9 h-8 rounded-lg flex items-center justify-center transition-all ${
+                    isChecked 
+                      ? 'bg-iosGreen text-black font-bold shadow-sm shadow-iosGreen/20' 
+                      : 'bg-iosSubCard text-iosGray border border-iosBorder'
+                  }">
+                  ${isChecked ? '✓' : ''}
+                </button>
+              </div>
+            `;
+          }
+          
+          if (needsStateSave) saveState();
+
+          exCard.innerHTML = `
+            <div class="flex items-start justify-between gap-2">
+              <div>
+                <h3 class="text-base font-semibold text-white">${exIndex + 1}. ${ex.name}</h3>
+                <div class="flex items-center gap-2 mt-0.5">
+                  <span class="text-xs font-medium text-iosBlue">${ex.target}</span>
+                  <span class="text-[11px] text-iosGray bg-iosSubCard px-2 py-0.5 rounded-full border border-iosBorder/40">Riposo: ${ex.rest}</span>
+                </div>
+              </div>
+            </div>
+            <p class="text-[11px] text-iosGray italic">${ex.tips}</p>
+
+            <div class="pt-1 space-y-1">
+              <div class="flex items-center text-[10px] uppercase font-bold text-iosGray tracking-wider px-1">
+                <span class="w-7">Set</span>
+                <span class="flex-1 text-center">Carico (Kg)</span>
+                <span class="flex-1 text-center">Ripetizioni</span>
+                <span class="w-9 text-center">Fatto</span>
+              </div>
+              ${setsHtml}
+            </div>
+          `;
+          dayContentArea.appendChild(exCard);
+        });
+      } else if (currentDay.type === 'cardio') {
+        const card = document.createElement('div');
+        card.className = 'bg-iosCard border border-iosBorder rounded-2xl p-5 space-y-3';
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-iosBlue/20 text-iosBlue flex items-center justify-center text-2xl font-bold">🏃‍♂️</div>
+            <div>
+              <h3 class="text-base font-bold text-white">Protocollo Zona 2</h3>
+              <p class="text-xs text-iosBlue font-semibold">${currentDay.cardioPlan.duration}</p>
+            </div>
+          </div>
+          <div class="bg-iosSubCard/80 rounded-xl p-3 border border-iosBorder/60 space-y-1">
+            <div class="text-xs font-semibold text-white">Intensità Target:</div>
+            <p class="text-xs text-iosGray leading-relaxed">${currentDay.cardioPlan.intensity}</p>
+          </div>
+          <p class="text-xs text-iosGray leading-relaxed">${currentDay.cardioPlan.details}</p>
+        `;
+        dayContentArea.appendChild(card);
+      } else if (currentDay.type === 'conditioning') {
+        const card = document.createElement('div');
+        card.className = 'bg-iosCard border border-iosBorder rounded-2xl p-5 space-y-3';
+        let stepsHtml = currentDay.protocol.steps.map(s => `<li class="flex items-start gap-2 text-xs text-slate-300"><span class="text-iosOrange font-bold">•</span><span>${s}</span></li>`).join('');
+        card.innerHTML = `
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-xl bg-iosOrange/20 text-iosOrange flex items-center justify-center text-2xl font-bold">⚡</div>
+            <div>
+              <h3 class="text-base font-bold text-white">${currentDay.protocol.summary}</h3>
+              <p class="text-xs text-iosOrange font-semibold">Agilità Tennis & Padel</p>
+            </div>
+          </div>
+          <ul class="space-y-2 bg-iosSubCard/80 p-3.5 rounded-xl border border-iosBorder/60">
+            ${stepsHtml}
+          </ul>
+        `;
+        dayContentArea.appendChild(card);
+      } else if (currentDay.type === 'rest') {
+        const card = document.createElement('div');
+        card.className = 'bg-iosCard border border-iosBorder rounded-2xl p-6 text-center space-y-3';
+        card.innerHTML = `
+          <div class="text-4xl">🧘‍♂️</div>
+          <h3 class="text-lg font-bold text-white">Giorno di Riposo</h3>
+          <p class="text-xs text-iosGray max-w-sm mx-auto leading-relaxed">
+            I muscoli crescono e si riparano durante la rigenerazione. Mantieni alta l'idratazione e concediti del tempo per la mobilità articolare o una passeggiata rilassante.
+          </p>
+        `;
+        dayContentArea.appendChild(card);
+      } else if (currentDay.type === 'history') {
+        const hist = appState.history || [];
+        
+        // Calcola statistiche (Mese e Settimana)
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfWeek = new Date(now.setDate(now.getDate() - now.getDay() + (now.getDay() === 0 ? -6 : 1))); // Lunedì
+        startOfWeek.setHours(0,0,0,0);
+        
+        let monthCount = 0;
+        let weekCount = 0;
+        hist.forEach(s => {
+          const d = new Date(s.date);
+          if (d >= startOfMonth) monthCount++;
+          if (d >= startOfWeek) weekCount++;
+        });
+
+        const statsCard = document.createElement('div');
+        statsCard.className = 'flex gap-3 mb-4';
+        statsCard.innerHTML = `
+          <div class="flex-1 bg-iosCard border border-iosBorder rounded-2xl p-4 text-center">
+            <div class="text-[10px] uppercase font-bold text-iosGray tracking-wide">Questa Settimana</div>
+            <div class="text-2xl font-bold text-white mt-1">${weekCount}</div>
+          </div>
+          <div class="flex-1 bg-iosCard border border-iosBorder rounded-2xl p-4 text-center">
+            <div class="text-[10px] uppercase font-bold text-iosGray tracking-wide">Questo Mese</div>
+            <div class="text-2xl font-bold text-white mt-1">${monthCount}</div>
+          </div>
+        `;
+        dayContentArea.appendChild(statsCard);
+
+        const actionsCard = document.createElement('div');
+        actionsCard.className = 'bg-iosCard border border-iosBorder rounded-2xl p-4 flex gap-2 justify-center mb-4';
+        actionsCard.innerHTML = `
+          <button onclick="exportHistory()" class="flex-1 py-2.5 rounded-xl bg-iosSubCard text-iosBlue text-xs font-semibold border border-iosBorder active:scale-95 transition-all">⬆ Esporta Backup</button>
+          <label class="flex-1 py-2.5 rounded-xl bg-iosSubCard text-iosBlue text-xs font-semibold border border-iosBorder active:scale-95 transition-all text-center cursor-pointer">
+            ⬇ Importa Backup
+            <input type="file" accept=".json" class="hidden" onchange="importHistory(event)">
+          </label>
+        `;
+        dayContentArea.appendChild(actionsCard);
+
+        const listContainer = document.createElement('div');
+        listContainer.className = 'space-y-3';
+        
+        if (hist.length === 0) {
+          listContainer.innerHTML = '<p class="text-center text-iosGray text-xs py-4">Nessun allenamento completato finora.</p>';
+        } else {
+          [...hist].reverse().forEach(sess => {
+            const sessDate = new Date(sess.date);
+            const dateStr = sessDate.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'short' });
+            
+            let detailsHtml = '';
+            if (sess.exercises && Object.keys(sess.exercises).length > 0) {
+              for (const [exId, sets] of Object.entries(sess.exercises)) {
+                let exName = exId; 
+                WORKOUT_DAYS.forEach(d => {
+                  if (d.exercises) {
+                    const found = d.exercises.find(e => e.id === exId);
+                    if (found) exName = found.name;
+                  }
+                });
+
+                let setsList = '';
+                for (const [sNum, data] of Object.entries(sets)) {
+                  setsList += `<span class="inline-block bg-iosBg px-1.5 py-0.5 rounded text-[10px] mr-1 mb-1 border border-iosBorder/50 font-mono">${data.kg || 0}kg × ${data.reps || 0}</span>`;
+                }
+                detailsHtml += `
+                  <div class="mt-2 border-t border-iosBorder/40 pt-2">
+                    <div class="text-[11px] font-semibold text-slate-300 mb-1">${exName}</div>
+                    <div class="flex flex-wrap">${setsList}</div>
+                  </div>
+                `;
+              }
+            } else if (sess.completed) {
+              detailsHtml = `<div class="mt-2 text-[11px] text-iosGreen">Sessione completata.</div>`;
+            }
+
+            const item = document.createElement('div');
+            item.className = 'bg-iosCard border border-iosBorder rounded-2xl p-4 transition-all active:bg-iosSubCard cursor-pointer';
+            item.innerHTML = `
+              <div class="flex justify-between items-center" onclick="toggleHistoryDetail('${sess.id}')">
+                <div>
+                  <div class="text-sm font-bold text-white capitalize">${dateStr}</div>
+                  <div class="text-xs text-iosBlue font-medium">${sess.title}</div>
+                </div>
+                <div class="text-iosGray text-xs">▼</div>
+              </div>
+              <div id="details_${sess.id}" class="hidden mt-1 animate-fade-in pb-1">
+                ${detailsHtml}
+              </div>
+            `;
+            listContainer.appendChild(item);
+          });
+        }
+        dayContentArea.appendChild(listContainer);
+      }
+
+      // Bottone di salvataggio a fine pagina per i giorni di allenamento
+      if (['lifting', 'cardio', 'conditioning'].includes(currentDay.type)) {
+        const finishBtn = document.createElement('button');
+        finishBtn.className = 'w-full py-3.5 mt-6 mb-2 rounded-2xl bg-iosBlue text-white font-bold text-[15px] shadow-lg shadow-iosBlue/20 active:scale-[0.98] transition-all border border-iosBlue/50';
+        finishBtn.innerHTML = 'Termina Workout 🎉';
+        finishBtn.onclick = () => saveCompletedWorkout(currentDay.id);
+        dayContentArea.appendChild(finishBtn);
+      }
+
+      bindCardEvents();
+    }
+
+    function bindCardEvents() {
+      // Inputs auto-save
+      document.querySelectorAll('.weight-input, .reps-input').forEach(input => {
+        input.addEventListener('input', (e) => {
+          const key = e.target.getAttribute('data-key');
+          appState.inputs[key] = e.target.value;
+          saveState();
+        });
+      });
+
+      // Set Checkbox buttons
+      document.querySelectorAll('.set-check-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          initAudioContext();
+          const checkKey = btn.getAttribute('data-checkkey');
+          const isNowChecked = !appState.completedSets[checkKey];
+          appState.completedSets[checkKey] = isNowChecked;
+          saveState();
+
+          // Auto-start rest timer if checking the set
+          if (isNowChecked) {
+            const restStr = btn.getAttribute('data-rest') || '90s';
+            let parsedSec = parseInt(restStr.replace(/[^0-9]/g, ''), 10) || 90;
+            startTimer(parsedSec);
+          }
+
+          renderActiveDay();
+        });
+      });
+    }
+
+    /* -------------------------------------------------------------
+       6. MODAL & RESET MANAGEMENT
+    --------------------------------------------------------------*/
+    const modalBackdrop = document.getElementById('modalBackdrop');
+    const modalCancelBtn = document.getElementById('modalCancelBtn');
+    const modalConfirmBtn = document.getElementById('modalConfirmBtn');
+    const resetDayBtn = document.getElementById('resetDayBtn');
+
+    resetDayBtn.addEventListener('click', () => {
+      modalBackdrop.classList.remove('hidden');
+    });
+
+    modalCancelBtn.addEventListener('click', () => {
+      modalBackdrop.classList.add('hidden');
+    });
+
+    modalConfirmBtn.addEventListener('click', () => {
+      const currentDay = WORKOUT_DAYS.find(d => d.id === appState.activeDayId);
+      if (currentDay && currentDay.exercises) {
+        currentDay.exercises.forEach(ex => {
+          for (let s = 1; s <= ex.defaultSets; s++) {
+            delete appState.completedSets[`${ex.id}_s${s}`];
+            delete appState.inputs[`${ex.id}_s${s}_kg`];
+            delete appState.inputs[`${ex.id}_s${s}_reps`];
+          }
+        });
+        saveState();
+        renderActiveDay();
+      }
+      modalBackdrop.classList.add('hidden');
+    });
+
+    /* -------------------------------------------------------------
+       7. INITIALIZATION
+    --------------------------------------------------------------*/
+    window.addEventListener('DOMContentLoaded', () => {
+      loadState();
+      renderTabs();
+      renderActiveDay();
+      updateTimerDisplay();
+
+      // Listen to first touch anywhere to unlock Web Audio on iOS Safari
+      document.body.addEventListener('touchstart', function unlockAudio() {
+        initAudioContext();
+        document.body.removeEventListener('touchstart', unlockAudio);
+      }, { once: true });
+    });
+  </script>
+</body>
+</html>
