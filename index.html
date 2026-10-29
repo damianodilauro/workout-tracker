@@ -530,35 +530,56 @@
     }
 
     function startTimer(duration) {
-      initAudioContext();
-      if (duration !== undefined) {
-        timerDuration = duration;
-        timerRemaining = duration;
+  initAudioContext();
+  
+  if (duration !== undefined) {
+    let cleanSeconds = 90; // Default di fallback
+
+    if (typeof duration === 'number') {
+      cleanSeconds = duration;
+    } else if (typeof duration === 'string') {
+      // Se trova un intervallo es. "90-120", prende il secondo valore (il recupero completo, es. 120)
+      // oppure puoi usare parts[0] se preferisci il minimo (90)
+      if (duration.includes('-')) {
+        const parts = duration.split('-');
+        cleanSeconds = parseInt(parts[1], 10) || parseInt(parts[0], 10);
+      } else {
+        cleanSeconds = parseInt(duration, 10);
       }
-      clearInterval(timerInterval);
-      timerRunning = true;
-      timerStateLabel.textContent = 'In corso...';
-      toggleTimerBtn.textContent = '❚❚';
-      toggleTimerBtn.classList.replace('bg-iosBlue', 'bg-iosOrange');
-
-      updateTimerDisplay();
-
-      timerInterval = setInterval(() => {
-        timerRemaining--;
-        if (timerRemaining <= 0) {
-          clearInterval(timerInterval);
-          timerRunning = false;
-          timerRemaining = timerDuration;
-          timerStateLabel.textContent = 'Completato!';
-          toggleTimerBtn.textContent = '▶';
-          toggleTimerBtn.classList.replace('bg-iosOrange', 'bg-iosBlue');
-          updateTimerDisplay();
-          onTimerComplete();
-        } else {
-          updateTimerDisplay();
-        }
-      }, 1000);
     }
+
+    // Se per qualche motivo il valore estratto fosse ancora anomalo (> 600s = 10 min)
+    if (isNaN(cleanSeconds) || cleanSeconds <= 0) cleanSeconds = 90;
+    if (cleanSeconds > 600) cleanSeconds = 120;
+
+    timerDuration = cleanSeconds;
+    timerRemaining = cleanSeconds;
+  }
+
+  clearInterval(timerInterval);
+  timerRunning = true;
+  timerStateLabel.textContent = 'In corso...';
+  toggleTimerBtn.textContent = '❚❚';
+  toggleTimerBtn.classList.replace('bg-iosBlue', 'bg-iosOrange');
+
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    timerRemaining--;
+    if (timerRemaining <= 0) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerRemaining = timerDuration;
+      timerStateLabel.textContent = 'Completato!';
+      toggleTimerBtn.textContent = '▶';
+      toggleTimerBtn.classList.replace('bg-iosOrange', 'bg-iosBlue');
+      updateTimerDisplay();
+      onTimerComplete();
+    } else {
+      updateTimerDisplay();
+    }
+  }, 1000);
+}
 
     function pauseTimer() {
       clearInterval(timerInterval);
