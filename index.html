@@ -1,430 +1,53 @@
-<!DOCTYPE html>
-<html lang="it">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="Workout">
-  <title>Workout Tracker</title>
-  <style>
-    :root {
-      --bg-color: #000000;
-      --card-bg: #1C1C1E;
-      --text-main: #FFFFFF;
-      --text-muted: #8E8E93;
-      --accent: #0A84FF;
-      --accent-success: #30D158;
-      --accent-danger: #FF453A;
-      --border: #38383A;
-      --safe-top: env(safe-area-inset-top, 20px);
-      --safe-bottom: env(safe-area-inset-bottom, 20px);
-    }
-    
-    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-    
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background-color: var(--bg-color);
-      color: var(--text-main);
-      overscroll-behavior-y: none;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    #app-container {
-      display: flex;
-      flex-direction: column;
-      height: 100vh;
-      width: 100vw;
-    }
-
-    .view-section {
-      display: none;
-      flex: 1;
-      overflow-y: auto;
-      padding-top: var(--safe-top);
-      padding-bottom: calc(var(--safe-bottom) + 85px);
-    }
-    .view-section.active { display: block; }
-
-    #sticky-timer {
-      position: fixed;
-      top: calc(var(--safe-top) + 10px);
-      left: 50%;
-      transform: translateX(-50%);
-      background: var(--accent-success);
-      color: #000;
-      padding: 8px 20px;
-      border-radius: 20px;
-      font-weight: bold;
-      font-variant-numeric: tabular-nums;
-      font-size: 1.15rem;
-      z-index: 1000;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.6);
-      display: none;
-      align-items: center;
-      gap: 8px;
-    }
-    #sticky-timer.active { display: flex; }
-
-    .days-scroll {
-      display: flex;
-      gap: 10px;
-      padding: 14px 16px;
-      overflow-x: auto;
-      scrollbar-width: none;
-      border-bottom: 1px solid var(--border);
-    }
-    .days-scroll::-webkit-scrollbar { display: none; }
-    
-    .day-pill {
-      background: var(--card-bg);
-      color: var(--text-muted);
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      white-space: nowrap;
-      border: 1px solid var(--border);
-    }
-    .day-pill.active {
-      background: var(--accent);
-      color: #FFF;
-      border-color: var(--accent);
-    }
-
-    .content-area { padding: 16px; }
-    
-    .action-btn {
-      width: 100%;
-      padding: 15px;
-      border-radius: 12px;
-      font-size: 1.05rem;
-      font-weight: bold;
-      border: none;
-      margin-bottom: 16px;
-      color: #FFF;
-    }
-    .btn-start { background-color: var(--accent-success); color: #000; }
-    .btn-finish { background-color: var(--accent-danger); }
-    .btn-manual { background-color: #2C2C2E; border: 1px dashed var(--accent); color: var(--accent); }
-
-    .exercise-card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 14px 16px;
-      margin-bottom: 14px;
-    }
-    .ex-title { font-size: 1.05rem; font-weight: 600; margin: 0 0 4px 0; }
-    .ex-target { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 10px; }
-    
-    .set-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 8px 0;
-      border-top: 1px solid var(--border);
-    }
-    .set-info {
-      display: flex;
-      flex-direction: column;
-      width: 65px;
-    }
-    .set-num { font-weight: bold; font-size: 0.85rem; }
-    .set-prev { font-size: 0.7rem; color: var(--text-muted); }
-
-    .set-inputs {
-      display: flex;
-      gap: 8px;
-      flex: 1;
-      justify-content: center;
-    }
-    
-    .input-group {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .input-group label { font-size: 0.65rem; color: var(--text-muted); margin-bottom: 2px; }
-    
-    input[type="number"], input[type="date"], select {
-      background: #000;
-      border: 1px solid var(--border);
-      color: #FFF;
-      padding: 7px;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 16px; /* Evita zoom Safari */
-      font-weight: bold;
-    }
-    input[type="number"] { width: 62px; }
-    
-    .checkbox-wrapper {
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: flex-end;
-    }
-    input[type="checkbox"] {
-      width: 26px;
-      height: 26px;
-      accent-color: var(--accent-success);
-    }
-
-    .history-dashboard {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 16px;
-      display: flex;
-      justify-content: space-around;
-      text-align: center;
-    }
-    .stat-box h3 { margin: 0; font-size: 1.7rem; color: var(--accent); }
-    .stat-box p { margin: 4px 0 0 0; font-size: 0.75rem; color: var(--text-muted); }
-
-    .history-card {
-      background: var(--card-bg);
-      border-radius: 12px;
-      padding: 14px;
-      margin-bottom: 12px;
-    }
-    .history-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-weight: bold;
-      font-size: 0.95rem;
-    }
-    .history-duration { font-size: 0.8rem; color: var(--accent-success); }
-    .history-details { margin-top: 10px; font-size: 0.8rem; color: var(--text-muted); }
-    .history-details ul { padding-left: 18px; margin: 6px 0 0 0; }
-
-    /* Modal Inserimento Manuale */
-    #manual-modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.85);
-      z-index: 2000;
-      padding: calc(var(--safe-top) + 20px) 16px calc(var(--safe-bottom) + 20px);
-      overflow-y: auto;
-    }
-    .modal-content {
-      background: var(--card-bg);
-      border-radius: 16px;
-      padding: 18px;
-    }
-
-    .bottom-nav {
-      position: fixed;
-      bottom: 0;
-      left: 0;
-      width: 100%;
-      background: rgba(28, 28, 30, 0.92);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border-top: 1px solid var(--border);
-      display: flex;
-      justify-content: space-around;
-      padding-top: 10px;
-      padding-bottom: calc(var(--safe-bottom) + 8px);
-      z-index: 100;
-    }
-    .nav-item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      color: var(--text-muted);
-      font-size: 0.75rem;
-      gap: 3px;
-    }
-    .nav-item.active { color: var(--accent); }
-    .nav-icon { font-size: 1.35rem; }
-  </style>
-</head>
-<body>
-
-  <div id="app-container">
-    
-    <div id="sticky-timer">
-      <span>⏱</span>
-      <span id="timer-display">00:00</span>
-    </div>
-
-    <!-- VIEW ALLENAMENTO -->
-    <div id="view-workout" class="view-section active">
-      <div class="days-scroll" id="days-slider"></div>
-      
-      <div class="content-area">
-        <button id="btn-start" class="action-btn btn-start" onclick="toggleSession()">Inizia Workout</button>
-        <div id="workout-content"></div>
-        <button id="btn-finish" class="action-btn btn-finish" style="display:none;" onclick="finishSession()">Termina Workout 🎉</button>
-      </div>
-    </div>
-
-    <!-- VIEW STORICO -->
-    <div id="view-history" class="view-section">
-      <div class="content-area">
-        <h2 style="margin-top:0;">Attività & Progressi</h2>
-        
-        <div class="history-dashboard">
-          <div class="stat-box">
-            <h3 id="stat-week">0</h3>
-            <p>Questa Settimana</p>
-          </div>
-          <div class="stat-box">
-            <h3 id="stat-total">0</h3>
-            <p>Workout Totali</p>
-          </div>
-        </div>
-
-        <button class="action-btn btn-manual" onclick="openManualModal()">+ Inserisci Workout Manuale</button>
-        
-        <div id="history-list"></div>
-      </div>
-    </div>
-
-    <!-- BOTTOM NAV -->
-    <div class="bottom-nav">
-      <div class="nav-item active" onclick="switchView('workout')" id="nav-workout">
-        <span class="nav-icon">🏋️</span>
-        <span>Allenamento</span>
-      </div>
-      <div class="nav-item" onclick="switchView('history')" id="nav-history">
-        <span class="nav-icon">🕒</span>
-        <span>Storico</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL INSERIMENTO MANUALE -->
-  <div id="manual-modal">
-    <div class="modal-content">
-      <h3 style="margin-top:0;">Registra Allenamento Passato</h3>
-      <div style="margin-bottom:12px;">
-        <label style="font-size:0.8rem; color:var(--text-muted);">Giorno</label><br>
-        <select id="manual-day" style="width:100%; margin-top:4px;" onchange="renderManualForm()">
-          <!-- Popolato via JS -->
-        </select>
-      </div>
-      <div style="margin-bottom:12px; display:flex; gap:10px;">
-        <div style="flex:1;">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Data</label><br>
-          <input type="date" id="manual-date" style="width:100%; margin-top:4px;">
-        </div>
-        <div style="width:110px;">
-          <label style="font-size:0.8rem; color:var(--text-muted);">Minuti</label><br>
-          <input type="number" id="manual-duration" value="50" style="width:100%; margin-top:4px;">
-        </div>
-      </div>
-      
-      <div id="manual-exercises-fields"></div>
-
-      <div style="display:flex; gap:10px; margin-top:16px;">
-        <button class="action-btn" style="background:#38383A; margin:0;" onclick="closeManualModal()">Annulla</button>
-        <button class="action-btn btn-start" style="margin:0;" onclick="saveManualWorkout()">Salva nello Storico</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // --- SCHEDA SETTIMANALE COMPLETA (7 GIORNI) ---
-    const workoutPlan = [
-      {
-        id: 'upper_a', name: 'Lunedì (Upper A)', 
-        exercises: [
-          { id: 'u1', name: 'Panca Piana Bilanciere', target: '4x6-8', defaultKg: 45 },
-          { id: 'u2', name: 'Trazioni (Prona/Neutra)', target: '4xmax', defaultKg: 0 },
-          { id: 'u3', name: 'Dip Parallele', target: '3x8-10', defaultKg: 0 },
-          { id: 'u4', name: 'Rematore Bilanciere', target: '3x8-10', defaultKg: 40 },
-          { id: 'u5', name: 'Face Pull elastico', target: '3x15-20', defaultKg: 5 }
-        ]
-      },
-      {
-        id: 'lower_a', name: 'Martedì (Lower A)',
-        exercises: [
-          { id: 'l1', name: 'Back Squat', target: '4x6-8', defaultKg: 60 },
-          { id: 'l2', name: 'Kettlebell RDL', target: '3x10-12', defaultKg: 20 },
-          { id: 'l3', name: 'Affondi Bulgari', target: '3x10', defaultKg: 16 },
-          { id: 'l4', name: 'Hanging Leg Raises / Plank', target: '3x10-12', defaultKg: 0 }
-        ]
-      },
-      {
-        id: 'cardio', name: 'Mercoledì (Cardio Zona 2)',
-        exercises: [
-          { id: 'c1', name: 'Corsa Aerobica Zona 2', target: '1x35-45 min', defaultKg: 0 }
-        ]
-      },
-      {
-        id: 'upper_b', name: 'Giovedì (Upper B)',
-        exercises: [
-          { id: 'ub1', name: 'Military Press Bilanciere', target: '4x6-8', defaultKg: 30 },
-          { id: 'ub2', name: 'Chin-Up (presa supina)', target: '4xmax', defaultKg: 0 },
-          { id: 'ub3', name: 'Panca Presa Stretta', target: '3x8-10', defaultKg: 40 },
-          { id: 'ub4', name: 'Rematore 1 Braccio KB', target: '3x10-12', defaultKg: 20 },
-          { id: 'ub5', name: 'Alzate Laterali elastico', target: '3x15-20', defaultKg: 0 }
-        ]
-      },
-      {
-        id: 'lower_b', name: 'Venerdì (Lower B)',
-        exercises: [
-          { id: 'lb1', name: 'Kettlebell Swing', target: '4x15-20', defaultKg: 20 },
-          { id: 'lb2', name: 'Stacco Rumeno Bilanciere', target: '3x8-10', defaultKg: 50 },
-          { id: 'lb3', name: 'Goblet Squat KB', target: '3x12', defaultKg: 20 },
-          { id: 'lb4', name: 'Calf Raise su gradino', target: '3x15-20', defaultKg: 0 },
-          { id: 'lb5', name: 'Russian Twist KB / Hollow', target: '3x20', defaultKg: 16 }
-        ]
-      },
-      {
-        id: 'sabato', name: 'Sabato (Condizionamento)',
-        exercises: [
-          { id: 's1', name: 'Tennis/Padel o HIIT Scatti', target: '1x40 min', defaultKg: 0 }
-        ]
-      },
-      {
-        id: 'domenica', name: 'Domenica (Riposo)',
-        exercises: [
-          { id: 'd1', name: 'Recupero / Stretching leggero', target: '1x20 min', defaultKg: 0 }
-        ]
-      }
-    ];
-
-    let currentDayId = workoutPlan[0].id;
-    let workoutHistory = JSON.parse(localStorage.getItem('workout_history') || '[]');
-    
-    // --- GESTIONE TIMER SESSIONE ---
-    let sessionTimerInterval = null;
-    let sessionSeconds = 0;
-    let isSessionActive = false;
-
-    function toggleSession() {
-      if (!isSessionActive) {
-        isSessionActive = true;
-        sessionSeconds = 0;
-        document.getElementById('btn-start').style.display = 'none';
-        document.getElementById('btn-finish').style.display = 'block';
-        document.getElementById('sticky-timer').classList.add('active');
-        updateSessionTimerDisplay();
-        
-        sessionTimerInterval = setInterval(() => {
-          sessionSeconds++;
-          updateSessionTimerDisplay();
-        }, 1000);
-      }
-    }
-
-    function updateSessionTimerDisplay() {
-      const m = Math.floor(sessionSeconds / 60).toString().padStart(2, '0');
-      const s = (sessionSeconds % 60).toString().padStart(2, '0');
-      document.getElementById('timer-display').textContent = `${m}:${s}`;
-    }
-
-    function stopSessionTimer() {
-      clearInterval(sessionTimerInterval);
-      isSessionActive = false;
-      document.getElementById('sticky-timer').classList.remove('active');
+const workoutPlan = [
+  {
+    id: 'upper_a', name: 'Lunedì (Upper A)', 
+    exercises: [
+      { id: 'u1', name: 'Panca Piana con Bilanciere', target: '4x6-8', defaultKg: 50 },
+      { id: 'u2', name: 'Trazioni (prona/neutra)', target: '4xmax', defaultKg: 0 },
+      { id: 'u3', name: 'Dip alle parallele', target: '3x8-10', defaultKg: 0 },
+      { id: 'u4', name: 'Rematore con Bilanciere', target: '3x8-10', defaultKg: 40 },
+      { id: 'u5', name: 'Face Pull con elastico', target: '3x15-20', defaultKg: 5 }
+    ]
+  },
+  {
+    id: 'lower_a', name: 'Martedì (Lower A)',
+    exercises: [
+      { id: 'l1', name: 'Back Squat con Bilanciere', target: '4x6-8', defaultKg: 60 },
+      { id: 'l2', name: 'Kettlebell RDL (gambe tese)', target: '3x10-12', defaultKg: 20 },
+      { id: 'l3', name: 'Affondi bulgari / camminata', target: '3x10', defaultKg: 16 },
+      { id: 'l4', name: 'Hanging Leg Raises / Plank', target: '3x10-12', defaultKg: 0 }
+    ]
+  },
+  {
+    id: 'cardio', name: 'Mercoledì (Cardio)',
+    exercises: [
+      { id: 'c1', name: 'Corsa Aerobica (Zona 2)', target: '35-45 min', defaultKg: 0 }
+    ]
+  },
+  {
+    id: 'upper_b', name: 'Giovedì (Upper B)',
+    exercises: [
+      { id: 'u6', name: 'Military Press', target: '4x6-8', defaultKg: 30 },
+      { id: 'u7', name: 'Chin-Up (presa inversa)', target: '4xmax', defaultKg: 0 },
+      { id: 'u8', name: 'Panca Piana (presa stretta)', target: '3x8-10', defaultKg: 45 },
+      { id: 'u9', name: 'Rematore 1 braccio KB', target: '3x10-12', defaultKg: 20 },
+      { id: 'u10', name: 'Alzate laterali elastico', target: '3x15-20', defaultKg: 0 }
+    ]
+  },
+  {
+    id: 'lower_b', name: 'Venerdì (Lower B)',
+    exercises: [
+      { id: 'l5', name: 'Kettlebell Swing', target: '4x15-20', defaultKg: 20 },
+      { id: 'l6', name: 'Stacco rumeno bilanciere', target: '3x8-10', defaultKg: 60 },
+      { id: 'l7', name: 'Goblet Squat KB', target: '3x12', defaultKg: 20 },
+      { id: 'l8', name: 'Calf raise su gradino', target: '3x15-20', defaultKg: 0 },
+      { id: 'l9', name: 'Russian Twist / Hollow', target: '3x20', defaultKg: 16 }
+    ]
+  },
+  {
+    id: 'condiz', name: 'Sabato (Condizionamento)',
+    exercises: [
+      { id: 's1', name: 'HIIT / Tennis / Padel', target: '15-90 min', defaultKg: 0 }
+    ]
+  }
+];
