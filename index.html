@@ -1,53 +1,506 @@
-const workoutPlan = [
-  {
-    id: 'upper_a', name: 'Lunedì (Upper A)', 
-    exercises: [
-      { id: 'u1', name: 'Panca Piana con Bilanciere', target: '4x6-8', defaultKg: 50 },
-      { id: 'u2', name: 'Trazioni (prona/neutra)', target: '4xmax', defaultKg: 0 },
-      { id: 'u3', name: 'Dip alle parallele', target: '3x8-10', defaultKg: 0 },
-      { id: 'u4', name: 'Rematore con Bilanciere', target: '3x8-10', defaultKg: 40 },
-      { id: 'u5', name: 'Face Pull con elastico', target: '3x15-20', defaultKg: 5 }
-    ]
-  },
-  {
-    id: 'lower_a', name: 'Martedì (Lower A)',
-    exercises: [
-      { id: 'l1', name: 'Back Squat con Bilanciere', target: '4x6-8', defaultKg: 60 },
-      { id: 'l2', name: 'Kettlebell RDL (gambe tese)', target: '3x10-12', defaultKg: 20 },
-      { id: 'l3', name: 'Affondi bulgari / camminata', target: '3x10', defaultKg: 16 },
-      { id: 'l4', name: 'Hanging Leg Raises / Plank', target: '3x10-12', defaultKg: 0 }
-    ]
-  },
-  {
-    id: 'cardio', name: 'Mercoledì (Cardio)',
-    exercises: [
-      { id: 'c1', name: 'Corsa Aerobica (Zona 2)', target: '35-45 min', defaultKg: 0 }
-    ]
-  },
-  {
-    id: 'upper_b', name: 'Giovedì (Upper B)',
-    exercises: [
-      { id: 'u6', name: 'Military Press', target: '4x6-8', defaultKg: 30 },
-      { id: 'u7', name: 'Chin-Up (presa inversa)', target: '4xmax', defaultKg: 0 },
-      { id: 'u8', name: 'Panca Piana (presa stretta)', target: '3x8-10', defaultKg: 45 },
-      { id: 'u9', name: 'Rematore 1 braccio KB', target: '3x10-12', defaultKg: 20 },
-      { id: 'u10', name: 'Alzate laterali elastico', target: '3x15-20', defaultKg: 0 }
-    ]
-  },
-  {
-    id: 'lower_b', name: 'Venerdì (Lower B)',
-    exercises: [
-      { id: 'l5', name: 'Kettlebell Swing', target: '4x15-20', defaultKg: 20 },
-      { id: 'l6', name: 'Stacco rumeno bilanciere', target: '3x8-10', defaultKg: 60 },
-      { id: 'l7', name: 'Goblet Squat KB', target: '3x12', defaultKg: 20 },
-      { id: 'l8', name: 'Calf raise su gradino', target: '3x15-20', defaultKg: 0 },
-      { id: 'l9', name: 'Russian Twist / Hollow', target: '3x20', defaultKg: 16 }
-    ]
-  },
-  {
-    id: 'condiz', name: 'Sabato (Condizionamento)',
-    exercises: [
-      { id: 's1', name: 'HIIT / Tennis / Padel', target: '15-90 min', defaultKg: 0 }
-    ]
-  }
-];
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Workout">
+  <title>Workout Tracker</title>
+  <style>
+    :root {
+      --bg-color: #000000;
+      --card-bg: #1C1C1E;
+      --text-main: #FFFFFF;
+      --text-muted: #8E8E93;
+      --accent-blue: #0A84FF;
+      --accent-green: #30D158;
+      --accent-red: #FF453A;
+      --border: #38383A;
+      --safe-top: env(safe-area-inset-top, 47px);
+      --safe-bottom: env(safe-area-inset-bottom, 34px);
+    }
+    
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-main);
+      overscroll-behavior-y: none;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Struttura View */
+    .view {
+      display: none;
+      padding-top: var(--safe-top);
+      padding-bottom: calc(var(--safe-bottom) + 90px);
+      height: 100vh;
+      overflow-y: auto;
+    }
+    .view.active { display: block; }
+
+    /* Barra Header (Giorni) */
+    .days-scroll {
+      display: flex;
+      gap: 12px;
+      padding: 16px;
+      overflow-x: auto;
+      scrollbar-width: none;
+      border-bottom: 0.5px solid var(--border);
+      position: sticky;
+      top: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      z-index: 50;
+    }
+    .days-scroll::-webkit-scrollbar { display: none; }
+    
+    .day-chip {
+      background: var(--card-bg);
+      color: var(--text-muted);
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: all 0.2s ease;
+    }
+    .day-chip.active {
+      background: var(--text-main);
+      color: var(--bg-color);
+    }
+
+    /* Container Esercizi */
+    .content { padding: 16px; }
+    
+    /* Bottoni Azione */
+    .btn-main {
+      width: 100%;
+      padding: 16px;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: 600;
+      border: none;
+      margin-bottom: 24px;
+      color: #FFF;
+      transition: transform 0.1s;
+    }
+    .btn-main:active { transform: scale(0.98); }
+    .btn-start { background-color: var(--accent-blue); }
+    .btn-finish { background-color: var(--accent-green); }
+
+    /* Timer Globale */
+    #global-timer {
+      text-align: center;
+      font-size: 40px;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      margin: 10px 0 20px 0;
+      color: var(--accent-green);
+      display: none;
+    }
+
+    /* Card Esercizio */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+    .card-title { font-size: 18px; font-weight: 600; margin: 0 0 4px 0; }
+    .card-subtitle { font-size: 14px; color: var(--text-muted); margin-bottom: 16px; }
+    
+    /* Righe Serie */
+    .set-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-top: 0.5px solid var(--border);
+    }
+    .set-info { display: flex; flex-direction: column; width: 65px; }
+    .set-num { font-weight: 600; font-size: 15px; }
+    .set-prev { font-size: 12px; color: var(--text-muted); margin-top: 2px;}
+
+    .set-inputs { display: flex; gap: 12px; flex: 1; justify-content: center; }
+    .input-col { display: flex; flex-direction: column; align-items: center; }
+    .input-col label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+    
+    input[type="number"] {
+      width: 60px;
+      background: #000;
+      border: 1px solid var(--border);
+      color: #FFF;
+      padding: 10px 8px;
+      border-radius: 10px;
+      text-align: center;
+      font-size: 16px; /* 16px previene zoom iOS */
+      font-weight: 600;
+      appearance: none;
+    }
+    
+    /* Checkbox iOS Style */
+    .check-wrapper {
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: flex-end;
+    }
+    .ios-check {
+      width: 28px; height: 28px;
+      border-radius: 14px;
+      border: 2px solid var(--border);
+      appearance: none;
+      background-color: transparent;
+      transition: all 0.2s;
+      position: relative;
+    }
+    .ios-check:checked {
+      background-color: var(--accent-green);
+      border-color: var(--accent-green);
+    }
+    .ios-check:checked::after {
+      content: '';
+      position: absolute;
+      left: 8px; top: 4px;
+      width: 6px; height: 12px;
+      border: solid white;
+      border-width: 0 2.5px 2.5px 0;
+      transform: rotate(45deg);
+    }
+
+    /* Storico / History */
+    .history-header {
+      font-size: 32px; font-weight: 700; margin: 10px 16px 20px;
+    }
+    .history-card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 16px;
+      margin: 0 16px 16px;
+    }
+    .h-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .h-title { font-size: 17px; font-weight: 600; }
+    .h-time { font-size: 14px; color: var(--accent-blue); font-weight: 600; background: rgba(10,132,255,0.15); padding: 4px 10px; border-radius: 12px; }
+    .h-date { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
+    .h-line { font-size: 14px; padding: 6px 0; border-top: 0.5px solid var(--border); }
+    .h-line span { color: var(--text-muted); font-size: 13px; margin-left: 8px; }
+
+    /* Bottom Nav iOS */
+    .bottom-nav {
+      position: fixed; bottom: 0; left: 0; width: 100%;
+      background: rgba(28, 28, 30, 0.85);
+      backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+      border-top: 0.5px solid var(--border);
+      display: flex; justify-content: space-around;
+      padding-top: 10px; padding-bottom: var(--safe-bottom);
+      z-index: 100;
+    }
+    .nav-item {
+      display: flex; flex-direction: column; align-items: center;
+      color: var(--text-muted); font-size: 10px; gap: 4px; font-weight: 500;
+    }
+    .nav-item.active { color: var(--accent-blue); }
+    .nav-icon { font-size: 22px; }
+
+  </style>
+</head>
+<body>
+
+  <!-- VIEW: ALLENAMENTO -->
+  <div id="view-workout" class="view active">
+    <div class="days-scroll" id="days-slider"></div>
+    
+    <div class="content">
+      <button id="btn-start" class="btn-main btn-start" onclick="startWorkout()">Inizia Workout</button>
+      <div id="global-timer">00:00</div>
+      
+      <div id="workout-list"></div>
+      
+      <button id="btn-finish" class="btn-main btn-finish" style="display:none;" onclick="finishWorkout()">Termina Workout</button>
+    </div>
+  </div>
+
+  <!-- VIEW: STORICO -->
+  <div id="view-history" class="view">
+    <h1 class="history-header">Storico</h1>
+    <div id="history-list"></div>
+  </div>
+
+  <!-- BOTTOM NAV -->
+  <div class="bottom-nav">
+    <div class="nav-item active" id="nav-workout" onclick="switchTab('workout')">
+      <div class="nav-icon">🏋️</div><span>Allenamento</span>
+    </div>
+    <div class="nav-item" id="nav-history" onclick="switchTab('history')">
+      <div class="nav-icon">🕒</div><span>Storico</span>
+    </div>
+  </div>
+
+  <script>
+    // 1. IL TUO PIANO DI ALLENAMENTO COMPLETO
+    const workoutPlan = [
+      {
+        id: 'upper_a', name: 'Lunedì (Upper A)', 
+        exercises: [
+          { id: 'u1', name: 'Panca Piana Bilanciere', target: '4x6-8', defaultKg: 50 },
+          { id: 'u2', name: 'Trazioni (Prona/Neutra)', target: '4xmax', defaultKg: 0 },
+          { id: 'u3', name: 'Dip Parallele', target: '3x8-10', defaultKg: 0 },
+          { id: 'u4', name: 'Rematore Bilanciere', target: '3x8-10', defaultKg: 40 },
+          { id: 'u5', name: 'Face Pull elastico', target: '3x15-20', defaultKg: 5 }
+        ]
+      },
+      {
+        id: 'lower_a', name: 'Martedì (Lower A)',
+        exercises: [
+          { id: 'l1', name: 'Back Squat', target: '4x6-8', defaultKg: 60 },
+          { id: 'l2', name: 'Kettlebell RDL', target: '3x10-12', defaultKg: 20 },
+          { id: 'l3', name: 'Affondi Bulgari', target: '3x10', defaultKg: 16 },
+          { id: 'l4', name: 'Hanging Leg Raises', target: '3x10-12', defaultKg: 0 }
+        ]
+      },
+      {
+        id: 'cardio', name: 'Mercoledì (Cardio)',
+        exercises: [
+          { id: 'c1', name: 'Corsa Aerobica (Zona 2)', target: '35-45 min', defaultKg: 0 }
+        ]
+      },
+      {
+        id: 'upper_b', name: 'Giovedì (Upper B)',
+        exercises: [
+          { id: 'u6', name: 'Military Press', target: '4x6-8', defaultKg: 30 },
+          { id: 'u7', name: 'Chin-Up (presa inversa)', target: '4xmax', defaultKg: 0 },
+          { id: 'u8', name: 'Panca Piana (stretta)', target: '3x8-10', defaultKg: 45 },
+          { id: 'u9', name: 'Rematore 1 braccio KB', target: '3x10-12', defaultKg: 20 },
+          { id: 'u10', name: 'Alzate laterali elastico', target: '3x15-20', defaultKg: 0 }
+        ]
+      },
+      {
+        id: 'lower_b', name: 'Venerdì (Lower B)',
+        exercises: [
+          { id: 'l5', name: 'Kettlebell Swing', target: '4x15-20', defaultKg: 20 },
+          { id: 'l6', name: 'Stacco rumeno bil.', target: '3x8-10', defaultKg: 60 },
+          { id: 'l7', name: 'Goblet Squat KB', target: '3x12', defaultKg: 20 },
+          { id: 'l8', name: 'Calf raise su gradino', target: '3x15-20', defaultKg: 0 },
+          { id: 'l9', name: 'Russian Twist', target: '3x20', defaultKg: 16 }
+        ]
+      },
+      {
+        id: 'condiz', name: 'Sabato (Condizionamento)',
+        exercises: [
+          { id: 's1', name: 'HIIT / Tennis / Padel', target: '15-90 min', defaultKg: 0 }
+        ]
+      }
+    ];
+
+    // 2. STATO DELL'APP
+    let currentDayId = workoutPlan[0].id;
+    let workoutHistory = JSON.parse(localStorage.getItem('workout_history') || '[]');
+    
+    let timerInterval = null;
+    let startTime = null;
+
+    // 3. NAVIGAZIONE VIEWS E GIORNI
+    function switchTab(tab) {
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+      document.getElementById(`view-${tab}`).classList.add('active');
+      document.getElementById(`nav-${tab}`).classList.add('active');
+      if(tab === 'history') renderHistory();
+    }
+
+    function selectDay(dayId) {
+      if (startTime !== null) {
+        if(!confirm("Hai un workout in corso. Vuoi annullarlo per cambiare giorno?")) return;
+        resetWorkoutState();
+      }
+      currentDayId = dayId;
+      renderDays();
+      renderWorkoutForm();
+    }
+
+    function renderDays() {
+      const slider = document.getElementById('days-slider');
+      slider.innerHTML = '';
+      workoutPlan.forEach(day => {
+        const chip = document.createElement('div');
+        chip.className = `day-chip ${day.id === currentDayId ? 'active' : ''}`;
+        chip.innerText = day.name.split(' ')[0]; // Estrae solo "Lunedì", "Martedì"
+        chip.onclick = () => selectDay(day.id);
+        slider.appendChild(chip);
+      });
+    }
+
+    // 4. GENERAZIONE SCHEDA E PRE-COMPILAZIONE
+    function getLastSession(dayId) {
+      const sessions = workoutHistory.filter(w => w.dayId === dayId);
+      return sessions.length > 0 ? sessions[sessions.length - 1] : null;
+    }
+
+    function renderWorkoutForm() {
+      const container = document.getElementById('workout-list');
+      container.innerHTML = '';
+      const dayData = workoutPlan.find(d => d.id === currentDayId);
+      const lastSession = getLastSession(currentDayId);
+
+      dayData.exercises.forEach(ex => {
+        const numSets = parseInt(ex.target.split('x')[0]) || 1;
+        let setsHtml = '';
+        
+        for (let i = 1; i <= numSets; i++) {
+          let kgVal = ex.defaultKg;
+          let repVal = ex.target.split('x')[1] || ex.target;
+          let prevLabel = "Nuovo";
+
+          // Cerca valori dal workout precedente
+          if (lastSession && lastSession.exercises[ex.id] && lastSession.exercises[ex.id][i-1]) {
+            const past = lastSession.exercises[ex.id][i-1];
+            kgVal = past.kg;
+            repVal = past.reps;
+            prevLabel = `${kgVal}kg × ${repVal}`;
+          }
+
+          setsHtml += `
+            <div class="set-row" data-ex="${ex.id}">
+              <div class="set-info">
+                <span class="set-num">Set ${i}</span>
+                <span class="set-prev">${prevLabel}</span>
+              </div>
+              <div class="set-inputs">
+                <div class="input-col">
+                  <label>Kg</label>
+                  <input type="number" class="in-kg" inputmode="decimal" value="${kgVal}">
+                </div>
+                <div class="input-col">
+                  <label>Reps</label>
+                  <input type="number" class="in-reps" inputmode="numeric" value="${parseInt(repVal)||0}">
+                </div>
+              </div>
+              <div class="check-wrapper">
+                <input type="checkbox" class="ios-check val-check">
+              </div>
+            </div>
+          `;
+        }
+
+        container.innerHTML += `
+          <div class="card">
+            <h3 class="card-title">${ex.name}</h3>
+            <div class="card-subtitle">Obiettivo: ${ex.target}</div>
+            ${setsHtml}
+          </div>
+        `;
+      });
+    }
+
+    // 5. LOGICA DEL TIMER GLOBALE
+    function startWorkout() {
+      document.getElementById('btn-start').style.display = 'none';
+      document.getElementById('btn-finish').style.display = 'block';
+      const timerDisplay = document.getElementById('global-timer');
+      timerDisplay.style.display = 'block';
+      
+      startTime = Date.now();
+      timerInterval = setInterval(() => {
+        const diffSecs = Math.floor((Date.now() - startTime) / 1000);
+        const h = Math.floor(diffSecs / 3600);
+        const m = Math.floor((diffSecs % 3600) / 60).toString().padStart(2, '0');
+        const s = (diffSecs % 60).toString().padStart(2, '0');
+        timerDisplay.innerText = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
+      }, 1000);
+    }
+
+    function resetWorkoutState() {
+      clearInterval(timerInterval);
+      startTime = null;
+      document.getElementById('global-timer').style.display = 'none';
+      document.getElementById('global-timer').innerText = '00:00';
+      document.getElementById('btn-start').style.display = 'block';
+      document.getElementById('btn-finish').style.display = 'none';
+      document.querySelectorAll('.val-check').forEach(c => c.checked = false);
+    }
+
+    // 6. SALVATAGGIO WORKOUT
+    function finishWorkout() {
+      const rows = document.querySelectorAll('.set-row');
+      let completedSets = 0;
+      
+      let sessionData = {
+        date: new Date().toISOString(),
+        dayId: currentDayId,
+        duration: document.getElementById('global-timer').innerText,
+        exercises: {}
+      };
+
+      rows.forEach(row => {
+        if (row.querySelector('.val-check').checked) {
+          completedSets++;
+          const exId = row.dataset.ex;
+          const kg = row.querySelector('.in-kg').value;
+          const reps = row.querySelector('.in-reps').value;
+          
+          if (!sessionData.exercises[exId]) sessionData.exercises[exId] = [];
+          sessionData.exercises[exId].push({ kg: kg, reps: reps });
+        }
+      });
+
+      if (completedSets === 0) {
+        alert("Spunta almeno una serie per poter salvare il workout.");
+        return;
+      }
+
+      // Salva in LocalStorage
+      workoutHistory.push(sessionData);
+      localStorage.setItem('workout_history', JSON.stringify(workoutHistory));
+      
+      alert(`Ottimo lavoro! Workout salvato nello storico.\nDurata: ${sessionData.duration}`);
+      resetWorkoutState();
+      renderWorkoutForm(); // Ricarica la scheda pre-compilando i nuovi pesi appena salvati
+    }
+
+    // 7. RENDER STORICO ELEGANTE
+    function renderHistory() {
+      const container = document.getElementById('history-list');
+      container.innerHTML = '';
+
+      if (workoutHistory.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:var(--text-muted); margin-top:40px;">Nessun allenamento completato.</p>';
+        return;
+      }
+
+      [...workoutHistory].reverse().forEach(session => {
+        const d = new Date(session.date);
+        const dateStr = d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+        const dayName = workoutPlan.find(p => p.id === session.dayId)?.name || 'Workout';
+        
+        let detailsHtml = '';
+        Object.keys(session.exercises).forEach(exId => {
+          const exName = workoutPlan.flatMap(d => d.exercises).find(e => e.id === exId)?.name || 'Esercizio';
+          const sets = session.exercises[exId];
+          const lastSet = sets[sets.length - 1];
+          detailsHtml += `<div class="h-line">${exName} <span>(${sets.length} serie, max ${lastSet.kg}kg × ${lastSet.reps})</span></div>`;
+        });
+
+        container.innerHTML += `
+          <div class="history-card">
+            <div class="h-top">
+              <div class="h-title">${dayName.split(' ')[0]}</div>
+              <div class="h-time">⏱ ${session.duration || '--:--'}</div>
+            </div>
+            <div class="h-date">${dateStr.charAt(0).toUpperCase() + dateStr.slice(1)}</div>
+            <div>${detailsHtml}</div>
+          </div>
+        `;
+      });
+    }
+
+    // Init
+    window.onload = () => {
+      renderDays();
+      renderWorkoutForm();
+    };
+  </script>
+</body>
+</html>
