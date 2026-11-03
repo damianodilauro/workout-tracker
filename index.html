@@ -273,10 +273,15 @@
       let completedSets = 0;
       
       let sessionData = {
-        sessionId: Date.now().toString(), // ID Univoco
-        date: new Date().toISOString(), dayId: currentDayId, dayName: dayData.dayLabel,
-        workoutType: dayData.typeLabel, duration: document.getElementById('global-timer').innerText,
-        exercises: {}, detailsText: ""
+        action: "save", // <--- QUESTA E' LA RIGA CHE MANCAVA!
+        sessionId: Date.now().toString(),
+        date: new Date().toISOString(), 
+        dayId: currentDayId, 
+        dayName: dayData.dayLabel,
+        workoutType: dayData.typeLabel, 
+        duration: document.getElementById('global-timer').innerText,
+        exercises: {}, 
+        detailsText: ""
       };
 
       rows.forEach(row => {
@@ -312,15 +317,15 @@
       const finishBtn = document.getElementById('btn-finish');
       finishBtn.innerText = "Salvataggio..."; finishBtn.style.opacity = "0.7"; finishBtn.style.pointerEvents = "none";
 
-      if(cloudEndpoint && cloudEndpoint.startsWith("[https://script.google.com](https://script.google.com)")) {
+      if(cloudEndpoint && cloudEndpoint.startsWith("https://script.google.com")) {
         try {
           await fetch(cloudEndpoint, { 
             method: 'POST', 
-            mode: 'no-cors', // <-- TRUCCO PER IOS SAFARI
+            mode: 'no-cors', // <-- Fondamentale per iOS
             headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
             body: JSON.stringify(sessionData) 
           });
-        } catch (error) {} // Ignora errore rete
+        } catch (error) {} 
       }
       
       finishBtn.innerText = "Termina Workout"; finishBtn.style.opacity = "1"; finishBtn.style.pointerEvents = "auto";
