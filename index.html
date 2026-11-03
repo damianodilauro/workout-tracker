@@ -8,43 +8,28 @@
   <meta name="apple-mobile-web-app-title" content="Workout">
   <title>Workout Tracker</title>
   <style>
-    :root {
-      --bg-color: #000000;
-      --card-bg: #1C1C1E;
-      --text-main: #FFFFFF;
-      --text-muted: #8E8E93;
-      --accent-blue: #0A84FF;
-      --accent-green: #30D158;
-      --border: #38383A;
-      --safe-top: env(safe-area-inset-top, 47px);
-      --safe-bottom: env(safe-area-inset-bottom, 34px);
-    }
-    
+    :root { --bg-color: #000000; --card-bg: #1C1C1E; --text-main: #FFFFFF; --text-muted: #8E8E93; --accent-blue: #0A84FF; --accent-green: #30D158; --accent-red: #FF453A; --border: #38383A; --safe-top: env(safe-area-inset-top, 47px); --safe-bottom: env(safe-area-inset-bottom, 34px); }
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif; background-color: var(--bg-color); color: var(--text-main); overscroll-behavior-y: none; }
     
-    body {
-      margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
-      background-color: var(--bg-color); color: var(--text-main); overscroll-behavior-y: none;
-    }
-
     .view { display: none; padding-top: var(--safe-top); padding-bottom: calc(var(--safe-bottom) + 90px); height: 100vh; overflow-y: auto; }
     .view.active { display: block; }
-
+    
     .days-scroll { display: flex; gap: 12px; padding: 16px; overflow-x: auto; scrollbar-width: none; border-bottom: 0.5px solid var(--border); position: sticky; top: 0; background: rgba(0, 0, 0, 0.8); backdrop-filter: blur(10px); z-index: 50; }
     .days-scroll::-webkit-scrollbar { display: none; }
     .day-chip { background: var(--card-bg); color: var(--text-muted); padding: 8px 18px; border-radius: 20px; font-size: 15px; font-weight: 600; white-space: nowrap; }
     .day-chip.active { background: var(--text-main); color: var(--bg-color); }
-
+    
     .workout-header { padding: 0 16px 16px; margin-bottom: 16px; border-bottom: 0.5px solid var(--border); }
     .wh-title { font-size: 28px; font-weight: 700; color: var(--accent-blue); margin: 0 0 8px 0; }
     .wh-desc { font-size: 14px; color: var(--text-muted); line-height: 1.4; }
-
+    
     .content { padding: 16px; }
     .btn-main { width: 100%; padding: 16px; border-radius: 14px; font-size: 17px; font-weight: 600; border: none; margin-bottom: 24px; color: #FFF; }
     .btn-start { background-color: var(--accent-blue); }
     .btn-finish { background-color: var(--accent-green); }
     #global-timer { text-align: center; font-size: 44px; font-weight: 700; font-variant-numeric: tabular-nums; margin: 10px 0 20px 0; color: var(--accent-green); display: none; }
-
+    
     .card { background: var(--card-bg); border-radius: 16px; padding: 16px; margin-bottom: 16px; }
     .card-title { font-size: 18px; font-weight: 600; margin: 0 0 4px 0; }
     .card-target { font-size: 14px; font-weight: 500; color: var(--accent-blue); margin-bottom: 6px; }
@@ -54,7 +39,7 @@
     .set-info { display: flex; flex-direction: column; width: 65px; }
     .set-num { font-weight: 600; font-size: 15px; }
     .set-prev { font-size: 11px; color: var(--text-muted); margin-top: 2px;}
-
+    
     .set-inputs { display: flex; gap: 12px; flex: 1; justify-content: center; }
     .input-col { display: flex; flex-direction: column; align-items: center; }
     .input-col label { font-size: 11px; color: var(--text-muted); margin-bottom: 4px; }
@@ -64,20 +49,22 @@
     .ios-check { width: 28px; height: 28px; border-radius: 14px; border: 2px solid var(--border); appearance: none; transition: all 0.2s; position: relative; }
     .ios-check:checked { background-color: var(--accent-green); border-color: var(--accent-green); }
     .ios-check:checked::after { content: ''; position: absolute; left: 8px; top: 4px; width: 6px; height: 12px; border: solid white; border-width: 0 2.5px 2.5px 0; transform: rotate(45deg); }
-
+    
     .history-header { display: flex; justify-content: space-between; align-items: center; margin: 10px 16px 20px; }
     .history-header h1 { font-size: 32px; font-weight: 700; margin: 0; }
     .btn-config { background: var(--border); color: #FFF; border: none; padding: 8px 12px; border-radius: 10px; font-weight: bold; font-size: 14px; }
     
-    .history-card { background: var(--card-bg); border-radius: 16px; padding: 16px; margin: 0 16px 16px; }
-    .h-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .history-card { background: var(--card-bg); border-radius: 16px; padding: 16px; margin: 0 16px 16px; position: relative; }
+    .btn-delete { position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: var(--accent-red); font-size: 20px; padding: 5px; opacity: 0.8; }
+    
+    .h-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; padding-right: 30px; }
     .h-title { font-size: 17px; font-weight: 600; }
     .h-type { font-size: 13px; color: var(--text-muted); margin-bottom: 12px;}
     .h-time { font-size: 14px; color: var(--accent-blue); font-weight: 600; background: rgba(10,132,255,0.15); padding: 4px 10px; border-radius: 12px; }
     .h-date { font-size: 13px; color: var(--text-muted); margin-bottom: 12px; }
-    .h-line { font-size: 14px; padding: 6px 0; border-top: 0.5px solid var(--border); }
-    .h-line span { color: var(--text-muted); font-size: 13px; margin-left: 8px; }
-
+    .h-line { font-size: 14px; padding: 10px 0; border-top: 0.5px solid var(--border); line-height: 1.4; }
+    .h-set-detail { color: var(--text-muted); font-size: 13px; display: block; margin-top: 4px; }
+    
     .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: rgba(28, 28, 30, 0.85); backdrop-filter: blur(20px); border-top: 0.5px solid var(--border); display: flex; justify-content: space-around; padding-top: 10px; padding-bottom: var(--safe-bottom); z-index: 100; }
     .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 10px; gap: 4px; font-weight: 500; }
     .nav-item.active { color: var(--accent-blue); }
@@ -111,56 +98,55 @@
   </div>
 
   <script>
-    // Recupera l'URL dal localStorage. Nessun URL hardcoded nel file.
     let cloudEndpoint = localStorage.getItem('gsheets_url') || "";
 
     const workoutPlan = [
       {
-        id: 'day_1', dayLabel: 'Lunedì', typeLabel: 'Upper A', desc: 'Forza orizzontale e Volume. Riscaldamento spalle obbligatorio prima di iniziare.',
+        id: 'day_1', dayLabel: 'Lunedì', typeLabel: 'Upper A', desc: 'Forza orizzontale e Volume. Riscaldamento spalle obbligatorio.',
         exercises: [
-          { id: 'u1', name: 'Panca Piana Bilanciere', target: '4x6-8', defaultKg: 50, notes: 'Cura l\'adduzione delle scapole. Tieni 1-2 RIR.' },
-          { id: 'u2', name: 'Trazioni (Prona/Neutra)', target: '4xmax', defaultKg: 0, notes: 'Se arrivi a 8 reps comode, zavorra.' },
-          { id: 'u3', name: 'Dip Parallele', target: '3x8-10', defaultKg: 0, notes: 'Lento e controllato.' },
-          { id: 'u4', name: 'Rematore Bilanciere', target: '3x8-10', defaultKg: 40, notes: 'Busto flesso 45-60°, porta il bilanciere all\'ombelico.' },
-          { id: 'u5', name: 'Face Pull elastico', target: '3x15-20', defaultKg: 5, notes: 'All\'altezza degli occhi, per la salute del deltoide posteriore.' }
+          { id: 'u1', name: 'Panca Piana Bilanciere', target: '4x6-8', defaultKg: 50 },
+          { id: 'u2', name: 'Trazioni (Prona/Neutra)', target: '4xmax', defaultKg: 0 },
+          { id: 'u3', name: 'Dip Parallele', target: '3x8-10', defaultKg: 0 },
+          { id: 'u4', name: 'Rematore Bilanciere', target: '3x8-10', defaultKg: 40 },
+          { id: 'u5', name: 'Face Pull elastico', target: '3x15-20', defaultKg: 5 }
         ]
       },
       {
-        id: 'day_2', dayLabel: 'Martedì', typeLabel: 'Lower A', desc: 'Quadricipiti e Spinta Gambe. Focus catena posteriore.',
+        id: 'day_2', dayLabel: 'Martedì', typeLabel: 'Lower A', desc: 'Quadricipiti e Spinta Gambe.',
         exercises: [
-          { id: 'l1', name: 'Back Squat', target: '4x6-8', defaultKg: 60, notes: 'Scendi a parallelo controllando la zona lombare (leve lunghe).' },
-          { id: 'l2', name: 'Kettlebell RDL', target: '3x10-12', defaultKg: 20, notes: 'Gambe semi-tese con KB.' },
-          { id: 'l3', name: 'Affondi Bulgari', target: '3x10', defaultKg: 16, notes: 'Per gamba. KB al petto se zavorrato.' },
-          { id: 'l4', name: 'Hanging Leg Raises', target: '3x10-12', defaultKg: 0, notes: 'Oppure Plank in alternativa.' }
+          { id: 'l1', name: 'Back Squat', target: '4x6-8', defaultKg: 60 },
+          { id: 'l2', name: 'Kettlebell RDL', target: '3x10-12', defaultKg: 20 },
+          { id: 'l3', name: 'Affondi Bulgari', target: '3x10', defaultKg: 16 },
+          { id: 'l4', name: 'Hanging Leg Raises', target: '3x10-12', defaultKg: 0 }
         ]
       },
       {
-        id: 'day_3', dayLabel: 'Mercoledì', typeLabel: 'Cardio LISS', desc: 'Zona 2 (Recupero attivo). Costruire base cardiovascolare.',
-        exercises: [{ id: 'c1', name: 'Corsa Aerobica', target: '35-45 min', defaultKg: 0, notes: 'Ritmo costante. Respirazione nasale.' }]
+        id: 'day_3', dayLabel: 'Mercoledì', typeLabel: 'Cardio LISS', desc: 'Zona 2. Costruire base cardiovascolare.',
+        exercises: [{ id: 'c1', name: 'Corsa Aerobica', target: '35-45 min', isCardio: true }]
       },
       {
-        id: 'day_4', dayLabel: 'Giovedì', typeLabel: 'Upper B', desc: 'Forza verticale e Focus fisico a V (Spalle e Dorso).',
+        id: 'day_4', dayLabel: 'Giovedì', typeLabel: 'Upper B', desc: 'Forza verticale e Focus fisico a V.',
         exercises: [
-          { id: 'u6', name: 'Military Press', target: '4x6-8', defaultKg: 30, notes: 'Core stabile. Fermati al mento se senti fastidio.' },
-          { id: 'u7', name: 'Chin-Up', target: '4xmax', defaultKg: 0, notes: 'Presa inversa supina per lavorare bene su bicipiti.' },
-          { id: 'u8', name: 'Panca Piana stretta', target: '3x8-10', defaultKg: 45, notes: 'Ottimo stimolo per i tricipiti.' },
-          { id: 'u9', name: 'Rematore 1 braccio KB', target: '3x10-12', defaultKg: 20, notes: 'Ripetizioni per lato.' },
-          { id: 'u10', name: 'Alzate laterali elastico', target: '3x15-20', defaultKg: 0, notes: 'Tensione continua sul deltoide laterale.' }
+          { id: 'u6', name: 'Military Press', target: '4x6-8', defaultKg: 30 },
+          { id: 'u7', name: 'Chin-Up', target: '4xmax', defaultKg: 0 },
+          { id: 'u8', name: 'Panca Piana stretta', target: '3x8-10', defaultKg: 45 },
+          { id: 'u9', name: 'Rematore 1 braccio KB', target: '3x10-12', defaultKg: 20 },
+          { id: 'u10', name: 'Alzate laterali elastico', target: '3x15-20', defaultKg: 0 }
         ]
       },
       {
-        id: 'day_5', dayLabel: 'Venerdì', typeLabel: 'Lower B', desc: 'Potenza posteriore con Kettlebell, Ischiocrurali e Core.',
+        id: 'day_5', dayLabel: 'Venerdì', typeLabel: 'Lower B', desc: 'Potenza posteriore, Ischiocrurali e Core.',
         exercises: [
-          { id: 'l5', name: 'Kettlebell Swing', target: '4x15-20', defaultKg: 20, notes: 'Esplosive. Focus hip hinge.' },
-          { id: 'l6', name: 'Stacco rumeno bilanciere', target: '3x8-10', defaultKg: 60, notes: 'Movimento controllato.' },
-          { id: 'l7', name: 'Goblet Squat KB', target: '3x12', defaultKg: 20, notes: 'Discesa profonda.' },
-          { id: 'l8', name: 'Calf raise su gradino', target: '3x15-20', defaultKg: 0, notes: 'Gamba singola, ripetizioni per gamba.' },
-          { id: 'l9', name: 'Russian Twist', target: '3x20', defaultKg: 16, notes: 'Totali (10 per lato) o Hollow Hold.' }
+          { id: 'l5', name: 'Kettlebell Swing', target: '4x15-20', defaultKg: 20 },
+          { id: 'l6', name: 'Stacco rumeno bilanciere', target: '3x8-10', defaultKg: 60 },
+          { id: 'l7', name: 'Goblet Squat KB', target: '3x12', defaultKg: 20 },
+          { id: 'l8', name: 'Calf raise su gradino', target: '3x15-20', defaultKg: 0 },
+          { id: 'l9', name: 'Russian Twist', target: '3x20', defaultKg: 16 }
         ]
       },
       {
-        id: 'day_6', dayLabel: 'Sabato', typeLabel: 'Condizionamento', desc: 'Agilità. Se giochi a Tennis o Padel oggi, la sessione è già coperta.',
-        exercises: [{ id: 's1', name: 'HIIT navetta', target: '15 min', defaultKg: 0, notes: '6-8 serie x 20 sec scatti + 40 sec recupero.' }]
+        id: 'day_6', dayLabel: 'Sabato', typeLabel: 'Condizionamento', desc: 'Agilità (HIIT, Tennis o Padel).',
+        exercises: [{ id: 's1', name: 'Sessione Agilità', target: 'Completato', isCardio: true }]
       }
     ];
 
@@ -170,12 +156,8 @@
     let startTime = null;
 
     function configureCloud() {
-      const url = prompt("Inserisci l'URL del tuo Google Apps Script per abilitare il salvataggio in Cloud:", cloudEndpoint);
-      if (url !== null) {
-        localStorage.setItem('gsheets_url', url.trim());
-        cloudEndpoint = url.trim();
-        alert("Configurazione Cloud aggiornata in sicurezza sul dispositivo.");
-      }
+      const url = prompt("Inserisci URL Google Apps Script:", cloudEndpoint);
+      if (url !== null) { localStorage.setItem('gsheets_url', url.trim()); cloudEndpoint = url.trim(); }
     }
 
     function switchTab(tab) {
@@ -187,7 +169,7 @@
     }
 
     function selectDay(dayId) {
-      if (startTime !== null && !confirm("Hai un workout in corso. Vuoi annullarlo per cambiare giorno?")) return;
+      if (startTime !== null && !confirm("Workout in corso. Annullare?")) return;
       if (startTime !== null) resetWorkoutState();
       currentDayId = dayId;
       renderDays();
@@ -214,7 +196,6 @@
     function renderWorkoutForm() {
       const dayData = workoutPlan.find(d => d.id === currentDayId);
       const lastSession = getLastSession(currentDayId);
-
       document.getElementById('workout-header-container').innerHTML = `
         <div class="workout-header">
           <h2 class="wh-title">${dayData.typeLabel}</h2>
@@ -225,35 +206,40 @@
       container.innerHTML = '';
 
       dayData.exercises.forEach(ex => {
-        const numSets = parseInt(ex.target.split('x')[0]) || 1;
         let setsHtml = '';
         
-        for (let i = 1; i <= numSets; i++) {
-          let kgVal = ex.defaultKg;
-          let repVal = ex.target.split('x')[1] || ex.target;
-          let prevLabel = "Nuovo";
-
-          if (lastSession && lastSession.exercises[ex.id] && lastSession.exercises[ex.id][i-1]) {
-            const past = lastSession.exercises[ex.id][i-1];
-            kgVal = past.kg; repVal = past.reps; prevLabel = `${kgVal}kg × ${repVal}`;
-          }
-
-          setsHtml += `
-            <div class="set-row" data-ex="${ex.id}">
-              <div class="set-info"><span class="set-num">Set ${i}</span><span class="set-prev">${prevLabel}</span></div>
-              <div class="set-inputs">
-                <div class="input-col"><label>Kg</label><input type="number" class="in-kg" inputmode="decimal" value="${kgVal}"></div>
-                <div class="input-col"><label>Reps</label><input type="number" class="in-reps" inputmode="numeric" value="${parseInt(repVal)||0}"></div>
-              </div>
+        if (ex.isCardio) {
+          // Layout Semplificato Cardio
+          setsHtml = `
+            <div class="set-row" data-ex="${ex.id}" data-cardio="true">
+              <div class="set-info"><span class="set-num">Stato</span></div>
+              <div style="flex:1; text-align:center; color:var(--text-muted);">Segna come Eseguito</div>
               <div class="check-wrapper"><input type="checkbox" class="ios-check val-check"></div>
             </div>`;
+        } else {
+          // Layout Pesi Completo
+          const numSets = parseInt(ex.target.split('x')[0]) || 1;
+          for (let i = 1; i <= numSets; i++) {
+            let kgVal = ex.defaultKg; let repVal = ex.target.split('x')[1] || ex.target; let prevLabel = "Nuovo";
+            if (lastSession && lastSession.exercises[ex.id] && lastSession.exercises[ex.id][i-1]) {
+              kgVal = lastSession.exercises[ex.id][i-1].kg; repVal = lastSession.exercises[ex.id][i-1].reps; prevLabel = `${kgVal}kg × ${repVal}`;
+            }
+            setsHtml += `
+              <div class="set-row" data-ex="${ex.id}">
+                <div class="set-info"><span class="set-num">Set ${i}</span><span class="set-prev">${prevLabel}</span></div>
+                <div class="set-inputs">
+                  <div class="input-col"><label>Kg</label><input type="number" class="in-kg" inputmode="decimal" value="${kgVal}"></div>
+                  <div class="input-col"><label>Reps</label><input type="number" class="in-reps" inputmode="numeric" value="${parseInt(repVal)||0}"></div>
+                </div>
+                <div class="check-wrapper"><input type="checkbox" class="ios-check val-check"></div>
+              </div>`;
+          }
         }
 
         container.innerHTML += `
           <div class="card">
             <h3 class="card-title">${ex.name}</h3>
             <div class="card-target">Obiettivo: ${ex.target}</div>
-            <div class="card-notes">${ex.notes || ''}</div>
             ${setsHtml}
           </div>`;
       });
@@ -264,13 +250,10 @@
       document.getElementById('btn-finish').style.display = 'block';
       const timerDisplay = document.getElementById('global-timer');
       timerDisplay.style.display = 'block';
-      
       startTime = Date.now();
       timerInterval = setInterval(() => {
         const diffSecs = Math.floor((Date.now() - startTime) / 1000);
-        const h = Math.floor(diffSecs / 3600);
-        const m = Math.floor((diffSecs % 3600) / 60).toString().padStart(2, '0');
-        const s = (diffSecs % 60).toString().padStart(2, '0');
+        const h = Math.floor(diffSecs / 3600); const m = Math.floor((diffSecs % 3600) / 60).toString().padStart(2, '0'); const s = (diffSecs % 60).toString().padStart(2, '0');
         timerDisplay.innerText = h > 0 ? `${h}:${m}:${s}` : `${m}:${s}`;
       }, 1000);
     }
@@ -290,6 +273,7 @@
       let completedSets = 0;
       
       let sessionData = {
+        sessionId: Date.now().toString(), // ID Univoco
         date: new Date().toISOString(), dayId: currentDayId, dayName: dayData.dayLabel,
         workoutType: dayData.typeLabel, duration: document.getElementById('global-timer').innerText,
         exercises: {}, detailsText: ""
@@ -300,41 +284,63 @@
           completedSets++;
           const exId = row.dataset.ex;
           if (!sessionData.exercises[exId]) sessionData.exercises[exId] = [];
-          sessionData.exercises[exId].push({ kg: row.querySelector('.in-kg').value, reps: row.querySelector('.in-reps').value });
+          
+          if (row.dataset.cardio) {
+            sessionData.exercises[exId].push({ cardio: true });
+          } else {
+            sessionData.exercises[exId].push({ kg: row.querySelector('.in-kg').value, reps: row.querySelector('.in-reps').value });
+          }
         }
       });
 
-      if (completedSets === 0) return alert("Spunta almeno una serie.");
+      if (completedSets === 0) return alert("Spunta almeno un elemento.");
 
       for (const exId in sessionData.exercises) {
         const exName = dayData.exercises.find(e => e.id === exId)?.name || exId;
         const sets = sessionData.exercises[exId];
-        const maxKg = Math.max(...sets.map(s => parseFloat(s.kg) || 0));
-        sessionData.detailsText += `${exName}: ${sets.length} serie (Max: ${maxKg}kg)\n`;
+        if (sets[0].cardio) {
+          sessionData.detailsText += `${exName}: Eseguito\n`;
+        } else {
+          sessionData.detailsText += `${exName}:\n`;
+          sets.forEach((s, idx) => { sessionData.detailsText += `  - Set ${idx+1}: ${s.kg}kg x ${s.reps}\n`; });
+        }
       }
 
       workoutHistory.push(sessionData);
       localStorage.setItem('workout_history', JSON.stringify(workoutHistory));
 
       const finishBtn = document.getElementById('btn-finish');
-      finishBtn.innerText = "Salvataggio...";
-      finishBtn.style.opacity = "0.7"; finishBtn.style.pointerEvents = "none";
+      finishBtn.innerText = "Salvataggio..."; finishBtn.style.opacity = "0.7"; finishBtn.style.pointerEvents = "none";
 
-      if(cloudEndpoint && cloudEndpoint.startsWith("https://script.google.com")) {
+      if(cloudEndpoint && cloudEndpoint.startsWith("[https://script.google.com](https://script.google.com)")) {
         try {
           await fetch(cloudEndpoint, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(sessionData) });
-          alert(`Salvato in locale e sul Cloud!\nDurata: ${sessionData.duration}`);
-        } catch (error) {
-          alert(`Salvato in LOCALE. Errore connessione Cloud.`);
-        }
-      } else {
-        alert(`Salvato in LOCALE (Nessun Cloud configurato).`);
+        } catch (error) {} // Ignora errore rete
       }
-
-      finishBtn.innerText = "Termina Workout";
-      finishBtn.style.opacity = "1"; finishBtn.style.pointerEvents = "auto";
       
-      resetWorkoutState(); renderWorkoutForm(); 
+      finishBtn.innerText = "Termina Workout"; finishBtn.style.opacity = "1"; finishBtn.style.pointerEvents = "auto";
+      resetWorkoutState(); renderWorkoutForm(); switchTab('history');
+    }
+
+    // ELIMINAZIONE WORKOUT
+    async function deleteWorkout(sessionId) {
+      if(!confirm("Vuoi davvero eliminare questo allenamento? Verrà rimosso anche dal Cloud.")) return;
+      
+      // Rimuovi localmente
+      workoutHistory = workoutHistory.filter(w => w.sessionId !== sessionId);
+      localStorage.setItem('workout_history', JSON.stringify(workoutHistory));
+      renderHistory(); // Aggiorna UI istantaneamente
+      
+      // Elimina dal Cloud
+      if(cloudEndpoint) {
+        try {
+          await fetch(cloudEndpoint, { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' }, 
+            body: JSON.stringify({ action: "delete", sessionId: sessionId }) 
+          });
+        } catch (error) { alert("Eliminato in locale. Errore di rete con il Cloud."); }
+      }
     }
 
     function renderHistory() {
@@ -345,14 +351,22 @@
       [...workoutHistory].reverse().forEach(session => {
         const d = new Date(session.date);
         let detailsHtml = '';
+        
         Object.keys(session.exercises).forEach(exId => {
           const exName = workoutPlan.flatMap(d => d.exercises).find(e => e.id === exId)?.name || 'Esercizio';
           const sets = session.exercises[exId];
-          detailsHtml += `<div class="h-line">${exName} <span>(${sets.length} serie, max ${sets[sets.length - 1].kg}kg)</span></div>`;
+          
+          if (sets[0].cardio) {
+            detailsHtml += `<div class="h-line"><strong>${exName}</strong><br><span class="h-set-detail">✅ Eseguito</span></div>`;
+          } else {
+            let setList = sets.map((s, i) => `${i+1}°: ${s.kg}kg × ${s.reps}`).join(' | ');
+            detailsHtml += `<div class="h-line"><strong>${exName}</strong><br><span class="h-set-detail">${setList}</span></div>`;
+          }
         });
 
         container.innerHTML += `
           <div class="history-card">
+            <button class="btn-delete" onclick="deleteWorkout('${session.sessionId}')">🗑</button>
             <div class="h-top"><div class="h-title">${session.dayName}</div><div class="h-time">⏱ ${session.duration || '--:--'}</div></div>
             <div class="h-type">${session.workoutType}</div>
             <div class="h-date">${d.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
